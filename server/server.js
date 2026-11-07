@@ -2,12 +2,14 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import db from './db.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
 
 // Middleware
 app.use(cors());
@@ -38,7 +40,6 @@ app.get('/health', (req, res) => {
 app.post('/api/auth/signup', async (req, res) => {
   const { name, email, password } = req.body;
 
-  // 1. Validate incoming data
   if (!name || !email || !password) {
     return res.status(400).json({
       error: 'Missing required fields: name, email, and password are required.'
@@ -52,17 +53,14 @@ app.post('/api/auth/signup', async (req, res) => {
   }
 
   try {
-    // 2. Check if user already exists
     const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
     if (existingUser) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
 
-    // 3. Hash the password with bcrypt (salt rounds = 10)
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // 4. Insert the new user into SQLite
     const insertQuery = db.prepare(`
       INSERT INTO users (name, email, password_hash)
       VALUES (?, ?, ?)
@@ -70,7 +68,6 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const result = insertQuery.run(name.trim(), email.toLowerCase().trim(), passwordHash);
 
-    // 5. Respond with created user data (excluding password)
     res.status(201).json({
       message: 'User created successfully',
       user: {
@@ -82,6 +79,53 @@ app.post('/api/auth/signup', async (req, res) => {
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ error: 'Server error during signup.' });
+  }
+});
+
+// ==========================================
+// DAY 5: User Authentication - Login Route
+// ==========================================
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  // 1. Validate presence of credentials
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required.' });
+  }
+
+  try {
+    // 2. Look up user by email
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    // 3. Compare submitted password with stored bcrypt hash
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid email or password.' });
+    }
+
+    // 4. Generate JWT signed token (valid for 24 hours)
+    const token = jwt.sign(
+      { userId: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // 5. Send back user profile and token
+    res.status(200).json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error during login.' });
   }
 });
 
