@@ -344,3 +344,155 @@ app.get('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
     res.status(500).json({ error: 'Failed to fetch expenses.' });
   }
 });
+// ==========================================
+// DAY 8: Group Balances & Debt Computation
+// ==========================================
+
+app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  try {
+    // 1. Verify membership
+    const membership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    // 2. Fetch all members in this group
+    const members = db.prepare(`
+      SELECT u.id, u.name, u.email
+      FROM group_members gm
+      JOIN users u ON gm.user_id = u.id
+      WHERE gm.group_id = ?
+    `).all(groupId);
+
+    // Initialize balance sheet
+    const balances = {};
+    members.forEach(member => {
+      balances[member.id] = {
+        userId: member.id,
+        name: member.name,
+        email: member.email,
+        paid: 0,
+        owed: 0,
+        settledSent: 0,
+        settledReceived: 0,
+        netBalance: 0
+      };
+    });
+
+    // 3. Sum total amount paid by each member for group expenses
+    const paidTotals = db.prepare(`
+      SELECT paid_by_id, COALESCE(SUM(amount), 0) AS total_paid
+      FROM expenses
+      WHERE group_id = ?
+      GROUP BY paid_by_id
+    `).all(groupId);
+
+    paidTotals.forEach(row => {
+      if (balances[row.paid_by_id]) {
+        balances[row.paid_by_id].paid = Math.round(row.total_paid * 100) / 100;
+      }
+    });
+
+    // 4. Sum total share owed by each member from expense splits
+    const owedTotals = db.prepare(`
+      SELECT es.user_id, COALESCE(SUM(es.share_amount), 0) AS total_owed
+      FROM expense_splits es
+      JOIN expenses e ON es.expense_id = e.id
+      WHERE e.group_id = ?
+      GROUP BY es.user_id
+    `).all(groupId);
+
+    owedTotals.forEach(row => {
+      if (balances[row.user_id]) {
+        balances[row.user_id].owed = Math.round(row.total_owed * 100) / 100;
+      }
+    });
+
+    // 5. Factor in recorded settlements (payments between members)
+    const settlements = db.prepare(`
+      SELECT from_user_id, to_user_id, amount
+      FROM settlements
+      WHERE group_id = ?
+    `).all(groupId);
+
+    settlements.forEach(s => {
+      if (balances[s.from_user_id]) {
+        balances[s.from_user_id].settledSent += s.amount;
+      }
+      if (balances[s.to_user_id]) {
+        balances[s.to_user_id].settledReceived += s.amount;
+      }
+    });
+
+    // 6. Compute final net balance for each member
+    const summary = Object.values(balances).map(b => {
+      const net = (b.paid - b.owed) + (b.settledSent - b.settledReceived);
+      return {
+        ...b,
+        settledSent: Math.round(b.settledSent * 100) / 100,
+        settledReceived: Math.round(b.settledReceived * 100) / 100,
+        netBalance: Math.round(net * 100) / 100
+      };
+    });
+
+    res.status(200).json({ groupId, balances: summary });
+  } catch (error) {
+    console.error('Error computing balances:', error);
+    res.status(500).json({ error: 'Failed to compute group balances.' });
+  }
+});
+// ==========================================
+// DAY 8 (Part 2): Record a Settlement
+// ==========================================
+
+app.post('/api/groups/:groupId/settlements', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const { toUserId, amount } = req.body;
+
+  if (!toUserId || typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({ error: 'Valid toUserId and positive amount are required.' });
+  }
+
+  if (toUserId === req.user.userId) {
+    return res.status(400).json({ error: 'Cannot record a settlement to yourself.' });
+  }
+
+  try {
+    // 1. Verify both users are members of the group
+    const membership = db.prepare(`
+      SELECT user_id FROM group_members 
+      WHERE group_id = ? AND user_id IN (?, ?)
+    `).all(groupId, req.user.userId, toUserId);
+
+    if (membership.length !== 2) {
+      return res.status(400).json({ error: 'Both users must be members of the group.' });
+    }
+
+    // 2. Insert settlement record
+    const insertSettlement = db.prepare(`
+      INSERT INTO settlements (group_id, from_user_id, to_user_id, amount)
+      VALUES (?, ?, ?, ?)
+    `);
+
+    const result = insertSettlement.run(groupId, req.user.userId, toUserId, amount);
+
+    res.status(201).json({
+      message: 'Settlement recorded successfully',
+      settlement: {
+        id: result.lastInsertRowid,
+        groupId,
+        fromUserId: req.user.userId,
+        toUserId,
+        amount
+      }
+    });
+  } catch (error) {
+    console.error('Error recording settlement:', error);
+    res.status(500).json({ error: 'Failed to record settlement.' });
+  }
+});
