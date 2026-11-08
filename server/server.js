@@ -207,3 +207,140 @@ app.get('/api/groups', authenticateToken, (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+// ==========================================
+// DAY 7: Expense Creation & Split Allocations
+// ==========================================
+
+// 1. Create an expense and split it among group members
+app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const { description, amount, category = 'General', splitUserIds } = req.body;
+
+  // Basic validation
+  if (!description || typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({ error: 'Valid description and positive amount are required.' });
+  }
+
+  if (!Array.isArray(splitUserIds) || splitUserIds.length === 0) {
+    return res.status(400).json({ error: 'splitUserIds must be a non-empty array of user IDs.' });
+  }
+
+  try {
+    // Verify current user belongs to this group
+    const membership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    // Verify all split participants are members of the group
+    const placeholders = splitUserIds.map(() => '?').join(',');
+    const validMembers = db.prepare(`
+      SELECT user_id FROM group_members
+      WHERE group_id = ? AND user_id IN (${placeholders})
+    `).all(groupId, ...splitUserIds);
+
+    if (validMembers.length !== splitUserIds.length) {
+      return res.status(400).json({ error: 'One or more split users are not in this group.' });
+    }
+
+    // Execute atomic transaction: record expense + split allocations
+    const recordExpenseTx = db.transaction(() => {
+      // Insert master expense record
+      const expenseInsert = db.prepare(`
+        INSERT INTO expenses (group_id, paid_by_id, description, amount, category)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+      const expenseResult = expenseInsert.run(
+        groupId,
+        req.user.userId,
+        description.trim(),
+        amount,
+        category.trim()
+      );
+      const expenseId = expenseResult.lastInsertRowid;
+
+      // Calculate split amounts handling decimal rounding:
+      // Divide evenly, round to 2 decimals, assign remainder to first participant
+      const baseShare = Math.floor((amount / splitUserIds.length) * 100) / 100;
+      let remainder = Math.round((amount - baseShare * splitUserIds.length) * 100) / 100;
+
+      const splitInsert = db.prepare(`
+        INSERT INTO expense_splits (expense_id, user_id, share_amount)
+        VALUES (?, ?, ?)
+      `);
+
+      for (let i = 0; i < splitUserIds.length; i++) {
+        const userId = splitUserIds[i];
+        let share = baseShare;
+        if (remainder > 0) {
+          share = Math.round((share + 0.01) * 100) / 100;
+          remainder = Math.round((remainder - 0.01) * 100) / 100;
+        }
+        splitInsert.run(expenseId, userId, share);
+      }
+
+      return expenseId;
+    });
+
+    const expenseId = recordExpenseTx();
+
+    res.status(201).json({
+      message: 'Expense created and split successfully',
+      expenseId,
+      groupId,
+      paidById: req.user.userId,
+      amount,
+      description: description.trim(),
+      splitCount: splitUserIds.length
+    });
+  } catch (error) {
+    console.error('Error logging expense:', error);
+    res.status(500).json({ error: 'Failed to record expense.' });
+  }
+});
+
+// 2. Fetch all expenses and their breakdown for a group
+app.get('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  try {
+    // Verify membership
+    const membership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    // Retrieve group expenses with payer name
+    const expenses = db.prepare(`
+      SELECT e.id, e.description, e.amount, e.category, e.paid_by_id, u.name AS paid_by_name, e.created_at
+      FROM expenses e
+      JOIN users u ON e.paid_by_id = u.id
+      WHERE e.group_id = ?
+      ORDER BY e.created_at DESC
+    `).all(groupId);
+
+    // Retrieve splits for each expense
+    const getSplits = db.prepare(`
+      SELECT es.user_id, u.name AS user_name, es.share_amount
+      FROM expense_splits es
+      JOIN users u ON es.user_id = u.id
+      WHERE es.expense_id = ?
+    `);
+
+    const detailedExpenses = expenses.map(expense => ({
+      ...expense,
+      splits: getSplits.all(expense.id)
+    }));
+
+    res.status(200).json({ expenses: detailedExpenses });
+  } catch (error) {
+    console.error('Error fetching group expenses:', error);
+    res.status(500).json({ error: 'Failed to fetch expenses.' });
+  }
+});
