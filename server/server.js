@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from './db.js';
 import { authenticateToken } from './authMiddleware.js';
+import { simplifyDebts } from './simplifyDebts.js';
 
 dotenv.config();
 
@@ -63,7 +64,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const insertQuery = db.prepare(`
-      INSERT INTO users (name, email, password_hash)
+      INSERT INTO users (name, email, password)
       VALUES (?, ?, ?)
     `);
 
@@ -99,7 +100,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
@@ -334,7 +335,6 @@ app.get('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
 // ==========================================
 // DAY 8: Group Balances & Debt Computation
 // ==========================================
-
 app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
   const groupId = parseInt(req.params.groupId, 10);
 
@@ -430,7 +430,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
 // ==========================================
 // DAY 8 (Part 2): Record a Settlement
 // ==========================================
-
 app.post('/api/groups/:groupId/settlements', authenticateToken, (req, res) => {
   const groupId = parseInt(req.params.groupId, 10);
   const { toUserId, amount } = req.body;
@@ -565,7 +564,98 @@ app.post('/api/groups/:groupId/members', authenticateToken, (req, res) => {
 });
 
 // ==========================================
-// Start Server (Keep at bottom)
+// DAY 10: Simplified Debt Transactions API
+// ==========================================
+app.get('/api/groups/:groupId/simplified-debts', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  try {
+    const membership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    const members = db.prepare(`
+      SELECT u.id, u.name, u.email
+      FROM group_members gm
+      JOIN users u ON gm.user_id = u.id
+      WHERE gm.group_id = ?
+    `).all(groupId);
+
+    const balances = {};
+    members.forEach(member => {
+      balances[member.id] = {
+        userId: member.id,
+        name: member.name,
+        paid: 0,
+        owed: 0,
+        settledSent: 0,
+        settledReceived: 0,
+        netBalance: 0
+      };
+    });
+
+    const paidTotals = db.prepare(`
+      SELECT paid_by_id, COALESCE(SUM(amount), 0) AS total_paid
+      FROM expenses
+      WHERE group_id = ?
+      GROUP BY paid_by_id
+    `).all(groupId);
+
+    paidTotals.forEach(row => {
+      if (balances[row.paid_by_id]) {
+        balances[row.paid_by_id].paid = row.total_paid;
+      }
+    });
+
+    const owedTotals = db.prepare(`
+      SELECT es.user_id, COALESCE(SUM(es.share_amount), 0) AS total_owed
+      FROM expense_splits es
+      JOIN expenses e ON es.expense_id = e.id
+      WHERE e.group_id = ?
+      GROUP BY es.user_id
+    `).all(groupId);
+
+    owedTotals.forEach(row => {
+      if (balances[row.user_id]) {
+        balances[row.user_id].owed = row.total_owed;
+      }
+    });
+
+    const settlements = db.prepare(`
+      SELECT from_user_id, to_user_id, amount
+      FROM settlements
+      WHERE group_id = ?
+    `).all(groupId);
+
+    settlements.forEach(s => {
+      if (balances[s.from_user_id]) balances[s.from_user_id].settledSent += s.amount;
+      if (balances[s.to_user_id]) balances[s.to_user_id].settledReceived += s.amount;
+    });
+
+    const balanceList = Object.values(balances).map(b => ({
+      userId: b.userId,
+      name: b.name,
+      netBalance: Math.round(((b.paid - b.owed) + (b.settledSent - b.settledReceived)) * 100) / 100
+    }));
+
+    const suggestedTransactions = simplifyDebts(balanceList);
+
+    res.status(200).json({
+      groupId,
+      suggestedTransactions
+    });
+  } catch (error) {
+    console.error('Error computing simplified debts:', error);
+    res.status(500).json({ error: 'Failed to compute simplified debts.' });
+  }
+});
+
+// ==========================================
+// Start Server
 // ==========================================
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
