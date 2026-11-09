@@ -143,7 +143,7 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
   }
 });
 
-// 2. Create a new group (matches db.js schema)
+// 2. Create a new group
 app.post('/api/groups', authenticateToken, (req, res) => {
   const { name } = req.body;
 
@@ -203,10 +203,6 @@ app.get('/api/groups', authenticateToken, (req, res) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
 // ==========================================
 // DAY 7: Expense Creation & Split Allocations
 // ==========================================
@@ -216,7 +212,6 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
   const groupId = parseInt(req.params.groupId, 10);
   const { description, amount, category = 'General', splitUserIds } = req.body;
 
-  // Basic validation
   if (!description || typeof amount !== 'number' || amount <= 0) {
     return res.status(400).json({ error: 'Valid description and positive amount are required.' });
   }
@@ -226,7 +221,6 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
   }
 
   try {
-    // Verify current user belongs to this group
     const membership = db.prepare(`
       SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
     `).get(groupId, req.user.userId);
@@ -235,7 +229,6 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
       return res.status(403).json({ error: 'You are not a member of this group.' });
     }
 
-    // Verify all split participants are members of the group
     const placeholders = splitUserIds.map(() => '?').join(',');
     const validMembers = db.prepare(`
       SELECT user_id FROM group_members
@@ -246,9 +239,7 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'One or more split users are not in this group.' });
     }
 
-    // Execute atomic transaction: record expense + split allocations
     const recordExpenseTx = db.transaction(() => {
-      // Insert master expense record
       const expenseInsert = db.prepare(`
         INSERT INTO expenses (group_id, paid_by_id, description, amount, category)
         VALUES (?, ?, ?, ?, ?)
@@ -262,8 +253,6 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
       );
       const expenseId = expenseResult.lastInsertRowid;
 
-      // Calculate split amounts handling decimal rounding:
-      // Divide evenly, round to 2 decimals, assign remainder to first participant
       const baseShare = Math.floor((amount / splitUserIds.length) * 100) / 100;
       let remainder = Math.round((amount - baseShare * splitUserIds.length) * 100) / 100;
 
@@ -307,7 +296,6 @@ app.get('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
   const groupId = parseInt(req.params.groupId, 10);
 
   try {
-    // Verify membership
     const membership = db.prepare(`
       SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
     `).get(groupId, req.user.userId);
@@ -316,7 +304,6 @@ app.get('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
       return res.status(403).json({ error: 'You are not a member of this group.' });
     }
 
-    // Retrieve group expenses with payer name
     const expenses = db.prepare(`
       SELECT e.id, e.description, e.amount, e.category, e.paid_by_id, u.name AS paid_by_name, e.created_at
       FROM expenses e
@@ -325,7 +312,6 @@ app.get('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
       ORDER BY e.created_at DESC
     `).all(groupId);
 
-    // Retrieve splits for each expense
     const getSplits = db.prepare(`
       SELECT es.user_id, u.name AS user_name, es.share_amount
       FROM expense_splits es
@@ -344,6 +330,7 @@ app.get('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
     res.status(500).json({ error: 'Failed to fetch expenses.' });
   }
 });
+
 // ==========================================
 // DAY 8: Group Balances & Debt Computation
 // ==========================================
@@ -352,7 +339,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
   const groupId = parseInt(req.params.groupId, 10);
 
   try {
-    // 1. Verify membership
     const membership = db.prepare(`
       SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
     `).get(groupId, req.user.userId);
@@ -361,7 +347,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
       return res.status(403).json({ error: 'You are not a member of this group.' });
     }
 
-    // 2. Fetch all members in this group
     const members = db.prepare(`
       SELECT u.id, u.name, u.email
       FROM group_members gm
@@ -369,7 +354,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
       WHERE gm.group_id = ?
     `).all(groupId);
 
-    // Initialize balance sheet
     const balances = {};
     members.forEach(member => {
       balances[member.id] = {
@@ -384,7 +368,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
       };
     });
 
-    // 3. Sum total amount paid by each member for group expenses
     const paidTotals = db.prepare(`
       SELECT paid_by_id, COALESCE(SUM(amount), 0) AS total_paid
       FROM expenses
@@ -398,7 +381,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
       }
     });
 
-    // 4. Sum total share owed by each member from expense splits
     const owedTotals = db.prepare(`
       SELECT es.user_id, COALESCE(SUM(es.share_amount), 0) AS total_owed
       FROM expense_splits es
@@ -413,7 +395,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
       }
     });
 
-    // 5. Factor in recorded settlements (payments between members)
     const settlements = db.prepare(`
       SELECT from_user_id, to_user_id, amount
       FROM settlements
@@ -429,7 +410,6 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
       }
     });
 
-    // 6. Compute final net balance for each member
     const summary = Object.values(balances).map(b => {
       const net = (b.paid - b.owed) + (b.settledSent - b.settledReceived);
       return {
@@ -446,6 +426,7 @@ app.get('/api/groups/:groupId/balances', authenticateToken, (req, res) => {
     res.status(500).json({ error: 'Failed to compute group balances.' });
   }
 });
+
 // ==========================================
 // DAY 8 (Part 2): Record a Settlement
 // ==========================================
@@ -463,7 +444,6 @@ app.post('/api/groups/:groupId/settlements', authenticateToken, (req, res) => {
   }
 
   try {
-    // 1. Verify both users are members of the group
     const membership = db.prepare(`
       SELECT user_id FROM group_members 
       WHERE group_id = ? AND user_id IN (?, ?)
@@ -473,7 +453,6 @@ app.post('/api/groups/:groupId/settlements', authenticateToken, (req, res) => {
       return res.status(400).json({ error: 'Both users must be members of the group.' });
     }
 
-    // 2. Insert settlement record
     const insertSettlement = db.prepare(`
       INSERT INTO settlements (group_id, from_user_id, to_user_id, amount)
       VALUES (?, ?, ?, ?)
@@ -495,4 +474,99 @@ app.post('/api/groups/:groupId/settlements', authenticateToken, (req, res) => {
     console.error('Error recording settlement:', error);
     res.status(500).json({ error: 'Failed to record settlement.' });
   }
+});
+
+// ==========================================
+// DAY 9: Group Member Management APIs
+// ==========================================
+
+// 1. List all members in a specific group
+app.get('/api/groups/:groupId/members', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  try {
+    const membership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    const members = db.prepare(`
+      SELECT u.id, u.name, u.email, gm.joined_at
+      FROM group_members gm
+      JOIN users u ON gm.user_id = u.id
+      WHERE gm.group_id = ?
+      ORDER BY gm.joined_at ASC
+    `).all(groupId);
+
+    res.status(200).json({ groupId, members });
+  } catch (error) {
+    console.error('Error fetching group members:', error);
+    res.status(500).json({ error: 'Failed to fetch group members.' });
+  }
+});
+
+// 2. Add an existing user to a group by their registered email
+app.post('/api/groups/:groupId/members', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const { email } = req.body;
+
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'A valid email address is required.' });
+  }
+
+  const targetEmail = email.toLowerCase().trim();
+
+  try {
+    const requesterMembership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!requesterMembership) {
+      return res.status(403).json({ error: 'You must be a member of this group to add others.' });
+    }
+
+    const targetUser = db.prepare(`
+      SELECT id, name, email FROM users WHERE email = ?
+    `).get(targetEmail);
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'No user registered with this email address.' });
+    }
+
+    const alreadyMember = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, targetUser.id);
+
+    if (alreadyMember) {
+      return res.status(409).json({ error: 'User is already a member of this group.' });
+    }
+
+    const insertMember = db.prepare(`
+      INSERT INTO group_members (group_id, user_id)
+      VALUES (?, ?)
+    `);
+    insertMember.run(groupId, targetUser.id);
+
+    res.status(201).json({
+      message: `${targetUser.name} added to the group successfully.`,
+      member: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email
+      }
+    });
+  } catch (error) {
+    console.error('Error adding member to group:', error);
+    res.status(500).json({ error: 'Failed to add member to group.' });
+  }
+});
+
+// ==========================================
+// Start Server (Keep at bottom)
+// ==========================================
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
