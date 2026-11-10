@@ -1,3 +1,6 @@
-node_modules
+node_modules/
 .env
+expenses.db
+expenses.db-wal
+expenses.db-shm
 *.db
