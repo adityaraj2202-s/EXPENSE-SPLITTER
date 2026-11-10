@@ -36,3 +36,40 @@ export const createGroup = async (name) => {
 
   return response.json();
 };
+
+export const getGroupMembers = async (groupId) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/${groupId}/members`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to fetch group members');
+  }
+
+  return response.json();
+};
+
+export const addGroupMember = async (groupId, email) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/${groupId}/members`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to add member');
+  }
+
+  return response.json();
+};

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import GroupDetails from './pages/GroupDetails';
 import { useAuth } from './context/AuthContext';
 import { Users, LogOut, Plus, ChevronRight, Loader2 } from 'lucide-react';
 import CreateGroupModal from './components/CreateGroupModal';
@@ -10,6 +11,7 @@ import { getGroups } from './services/groupService';
 
 function Dashboard() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -102,6 +104,7 @@ function Dashboard() {
             {groups.map((group) => (
               <div
                 key={group.id}
+                onClick={() => navigate(`/groups/${group.id}`)}
                 className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-300 hover:shadow-md transition cursor-pointer flex justify-between items-center group"
               >
                 <div className="space-y-1">
@@ -142,6 +145,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/groups/:groupId"
+        element={
+          <ProtectedRoute>
+            <GroupDetails />
           </ProtectedRoute>
         }
       />
