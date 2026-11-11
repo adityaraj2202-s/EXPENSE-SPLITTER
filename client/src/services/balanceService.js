@@ -55,3 +55,19 @@ export const settlePayment = async (groupId, { toUserId, amount }) => {
 
   return response.json();
 };
+export const getSettlementHistory = async (groupId) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE}/${groupId}/settlements`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to fetch settlement history');
+  }
+
+  return response.json();
+};

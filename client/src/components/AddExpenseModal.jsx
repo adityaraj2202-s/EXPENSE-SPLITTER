@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Receipt, Loader2, Sparkles } from 'lucide-react';
 import { createExpense } from '../services/expenseService';
 
@@ -58,13 +58,14 @@ export default function AddExpenseModal({
     }
   };
 
-  const perPersonShare = amount && members.length > 0 
-    ? (parseFloat(amount) / members.length).toFixed(2) 
-    : '0.00';
+  const perPersonShare =
+    amount && members.length > 0
+      ? (parseFloat(amount) / members.length).toFixed(2)
+      : '0.00';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm transition-all">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden transform transition-all scale-100 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm transition-all animate-in fade-in duration-150">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden transform transition-all scale-100 duration-150">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-5 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-3">
@@ -73,7 +74,9 @@ export default function AddExpenseModal({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">Add New Expense</h3>
-              <p className="text-xs text-slate-500">Split equally among {members.length} members</p>
+              <p className="text-xs text-slate-500">
+                Split equally among {members.length} members
+              </p>
             </div>
           </div>
           <button
@@ -186,7 +189,7 @@ export default function AddExpenseModal({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] rounded-xl shadow-sm shadow-emerald-600/20 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98] rounded-xl shadow-md shadow-emerald-600/20 transition disabled:opacity-50"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {loading ? 'Creating...' : 'Save Expense'}

@@ -476,6 +476,44 @@ app.post('/api/groups/:groupId/settlements', authenticateToken, (req, res) => {
 });
 
 // ==========================================
+// NEW: Fetch Settlement History Log
+// ==========================================
+app.get('/api/groups/:groupId/settlements', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+
+  try {
+    const membership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!membership) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    const settlements = db.prepare(`
+      SELECT 
+        s.id,
+        s.amount,
+        s.created_at,
+        s.from_user_id,
+        s.to_user_id,
+        u_from.name AS from_user_name,
+        u_to.name AS to_user_name
+      FROM settlements s
+      JOIN users u_from ON s.from_user_id = u_from.id
+      JOIN users u_to ON s.to_user_id = u_to.id
+      WHERE s.group_id = ?
+      ORDER BY s.id DESC
+    `).all(groupId);
+
+    res.status(200).json({ groupId, settlements });
+  } catch (error) {
+    console.error('Error fetching settlement history:', error);
+    res.status(500).json({ error: 'Failed to fetch settlement history.' });
+  }
+});
+
+// ==========================================
 // DAY 9: Group Member Management APIs
 // ==========================================
 

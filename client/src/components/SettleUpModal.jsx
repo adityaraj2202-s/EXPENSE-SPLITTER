@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, HandCoins, Loader2, ArrowRight } from 'lucide-react';
 import { settlePayment } from '../services/balanceService';
 
-export default function SettleUpModal({
-  isOpen,
+function SettleUpModalContent({
   onClose,
   groupId,
   members,
@@ -11,23 +10,12 @@ export default function SettleUpModal({
   defaultAmount = '',
   onSettled,
 }) {
-  const [toUserId, setToUserId] = useState('');
-  const [amount, setAmount] = useState('');
+  const [toUserId, setToUserId] = useState(
+    () => defaultReceiverId?.toString() || members?.[0]?.id?.toString() || ''
+  );
+  const [amount, setAmount] = useState(() => defaultAmount?.toString() || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (defaultReceiverId) {
-      setToUserId(defaultReceiverId.toString());
-    } else if (members && members.length > 0) {
-      setToUserId(members[0].id.toString());
-    }
-    if (defaultAmount) {
-      setAmount(defaultAmount.toString());
-    }
-  }, [members, defaultReceiverId, defaultAmount, isOpen]);
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,8 +50,8 @@ export default function SettleUpModal({
   const selectedMember = members.find((m) => m.id === Number(toUserId));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm transition-all duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden transform transition-all scale-100 animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-sm transition-all duration-200 animate-in fade-in">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden transform transition-all scale-100 duration-150">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-5 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-3">
@@ -150,7 +138,7 @@ export default function SettleUpModal({
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] rounded-xl shadow-sm shadow-indigo-600/20 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 active:scale-[0.98] rounded-xl shadow-md shadow-indigo-600/20 transition disabled:opacity-50"
             >
               {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {loading ? 'Recording...' : 'Record Payment'}
@@ -160,4 +148,9 @@ export default function SettleUpModal({
       </div>
     </div>
   );
+}
+
+export default function SettleUpModal(props) {
+  if (!props.isOpen) return null;
+  return <SettleUpModalContent key={`${props.defaultReceiverId}-${props.defaultAmount}`} {...props} />;
 }

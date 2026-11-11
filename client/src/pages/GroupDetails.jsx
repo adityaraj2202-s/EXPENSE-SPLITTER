@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -12,10 +12,12 @@ import {
   HandCoins,
   CheckCircle2,
   Wallet,
+  X,
+  History,
 } from 'lucide-react';
 import { getGroupMembers } from '../services/groupService';
 import { getExpenses } from '../services/expenseService';
-import { getGroupBalances } from '../services/balanceService';
+import { getGroupBalances, getSettlementHistory } from '../services/balanceService';
 import { getCategoryMeta } from '../utils/categoryIcons';
 import AddMemberModal from '../components/AddMemberModal';
 import AddExpenseModal from '../components/AddExpenseModal';
@@ -29,9 +31,13 @@ export default function GroupDetails() {
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState({});
   const [settlements, setSettlements] = useState([]);
+  const [settlementHistory, setSettlementHistory] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Floating speed dial state
+  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
 
   // Modals
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
@@ -39,7 +45,6 @@ export default function GroupDetails() {
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
 
   // Settlement prefill state
-  const [settlePayerId, setSettlePayerId] = useState('');
   const [settleReceiverId, setSettleReceiverId] = useState('');
   const [settleAmount, setSettleAmount] = useState('');
 
@@ -47,30 +52,58 @@ export default function GroupDetails() {
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
   const currentUserId = storedUser.id || null;
 
-  const fetchAllData = async () => {
+  const fetchAllData = useCallback(async () => {
     try {
       setError('');
       setLoading(true);
 
-      const [memberData, expenseData, balanceData] = await Promise.all([
+      const [memberData, expenseData, balanceData, historyData] = await Promise.all([
         getGroupMembers(groupId),
         getExpenses(groupId),
         getGroupBalances(groupId),
+        getSettlementHistory(groupId).catch(() => ({ settlements: [] })),
       ]);
 
       setMembers(memberData.members || []);
       setExpenses(expenseData.expenses || []);
       setBalances(balanceData.balances || {});
       setSettlements(balanceData.settlements || []);
+      setSettlementHistory(historyData.settlements || []);
     } catch (err) {
       setError(err.message || 'Failed to load group details');
     } finally {
       setLoading(false);
     }
-  };
+  }, [groupId]);
 
   useEffect(() => {
-    fetchAllData();
+    let ignore = false;
+    Promise.all([
+      getGroupMembers(groupId),
+      getExpenses(groupId),
+      getGroupBalances(groupId),
+      getSettlementHistory(groupId).catch(() => ({ settlements: [] })),
+    ])
+      .then(([memberData, expenseData, balanceData, historyData]) => {
+        if (!ignore) {
+          setMembers(memberData.members || []);
+          setExpenses(expenseData.expenses || []);
+          setBalances(balanceData.balances || {});
+          setSettlements(balanceData.settlements || []);
+          setSettlementHistory(historyData.settlements || []);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setError(err.message || 'Failed to load group details');
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [groupId]);
 
   const handleMemberAdded = (newMember) => {
@@ -86,8 +119,7 @@ export default function GroupDetails() {
     fetchAllData();
   };
 
-  const openSettleWithPrefill = (payerId, receiverId, amount) => {
-    setSettlePayerId(payerId);
+  const openSettleWithPrefill = (receiverId, amount) => {
     setSettleReceiverId(receiverId);
     setSettleAmount(amount);
     setIsSettleModalOpen(true);
@@ -100,25 +132,34 @@ export default function GroupDetails() {
       : null;
 
   return (
-    <div className="min-h-screen bg-slate-100/60 pb-16">
+    <div className="min-h-screen bg-slate-100/70 pb-28 relative">
       {/* 1. Decorative Top Accent Bar */}
       <div className="h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 w-full" />
 
+      {/* Floating Speed Dial Backdrop */}
+      {isSpeedDialOpen && (
+        <div
+          onClick={() => setIsSpeedDialOpen(false)}
+          className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-30 transition-opacity"
+        />
+      )}
+
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-8 space-y-6">
+        
         {/* 2. Top Navigation & Action Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors w-fit group"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-indigo-600 transition-colors w-fit group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            Back to Dashboard
+            <span>Back to Dashboard</span>
           </button>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={() => setIsMemberModalOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium rounded-xl shadow-sm transition-all"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50 text-sm font-semibold rounded-xl shadow-xs transition-all"
             >
               <UserPlus className="w-4 h-4 text-slate-500" />
               <span>Add Member</span>
@@ -126,13 +167,12 @@ export default function GroupDetails() {
 
             <button
               onClick={() => {
-                setSettlePayerId('');
                 setSettleReceiverId('');
                 setSettleAmount('');
                 setIsSettleModalOpen(true);
               }}
               disabled={members.length < 2}
-              className="flex items-center gap-2 px-3.5 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-3.5 py-2 bg-indigo-50 border border-indigo-200/80 text-indigo-700 hover:bg-indigo-100 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
             >
               <HandCoins className="w-4 h-4 text-indigo-600" />
               <span>Settle Up</span>
@@ -141,7 +181,7 @@ export default function GroupDetails() {
             <button
               onClick={() => setIsExpenseModalOpen(true)}
               disabled={members.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-xl shadow-sm shadow-emerald-600/20 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-semibold rounded-xl shadow-md shadow-emerald-600/20 transition-all disabled:opacity-50"
             >
               <Plus className="w-4 h-4" />
               <span>Add Expense</span>
@@ -150,21 +190,26 @@ export default function GroupDetails() {
         </div>
 
         {/* 3. Hero Header & Metric Stats Grid */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
           {/* Header Title */}
           <div className="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  Group #{groupId}
-                </h1>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                  {members.length} {members.length === 1 ? 'member' : 'members'}
-                </span>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xl font-bold shadow-md shadow-indigo-600/20 shrink-0">
+                #{groupId}
               </div>
-              <p className="text-sm text-slate-500 mt-1">
-                Collaborative split ledger and automated debt simplification
-              </p>
+              <div>
+                <div className="flex items-center gap-2.5">
+                  <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                    Group #{groupId}
+                  </h1>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                    {members.length} {members.length === 1 ? 'member' : 'members'}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  Automated debt simplification & shared expense ledger
+                </p>
+              </div>
             </div>
           </div>
 
@@ -243,32 +288,34 @@ export default function GroupDetails() {
         </div>
 
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl">
+          <div className="p-4 bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-2xl shadow-sm">
             {error}
           </div>
         )}
 
         {/* 4. Suggested Settlements Section */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Scale className="w-5 h-5 text-indigo-600" />
-              Suggested Settlements
+              <span>Smart Debt Simplification</span>
             </h2>
             {settlements.length > 0 && (
-              <span className="text-xs text-slate-400">Minimal transactions to settle debts</span>
+              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
+                Greedy 2-Pointer Optimized
+              </span>
             )}
           </div>
 
           {loading ? (
             <div className="flex items-center gap-2 text-slate-400 py-6 justify-center">
               <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
-              <span className="text-sm">Calculating balances...</span>
+              <span className="text-sm font-medium">Calculating optimal settlements...</span>
             </div>
           ) : settlements.length === 0 ? (
-            <div className="flex items-center gap-2 text-slate-500 text-sm py-4">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              <span>All settled up! No outstanding balances in this group.</span>
+            <div className="flex items-center gap-3 p-4 bg-emerald-50/60 border border-emerald-100 rounded-2xl text-emerald-800 text-sm">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span className="font-medium">All settled up! No outstanding balances in this group.</span>
             </div>
           ) : (
             <div className="space-y-3">
@@ -324,11 +371,11 @@ export default function GroupDetails() {
                         ₹{parseFloat(item.amount).toFixed(2)}
                       </span>
                       <button
-                        onClick={() => openSettleWithPrefill(payerId, receiverId, item.amount)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-xs shadow-indigo-600/20 transition-all"
+                        onClick={() => openSettleWithPrefill(receiverId, item.amount)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-xs shadow-indigo-600/20 transition-all"
                       >
                         <HandCoins className="w-3.5 h-3.5" />
-                        <span>Settle</span>
+                        <span>Settle Now</span>
                       </button>
                     </div>
                   </div>
@@ -339,11 +386,11 @@ export default function GroupDetails() {
         </div>
 
         {/* 5. Members & Net Balances Grid */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Users className="w-5 h-5 text-indigo-600" />
-              Members & Net Balances ({members.length})
+              <span>Members & Net Balances ({members.length})</span>
             </h2>
             <span className="text-xs text-slate-400">Current financial position per member</span>
           </div>
@@ -366,7 +413,7 @@ export default function GroupDetails() {
                     key={member.id}
                     className={`p-4 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm flex flex-col justify-between gap-3 ${
                       isCurrentUser
-                        ? 'bg-indigo-50/30 border-indigo-200/70 ring-1 ring-indigo-500/10'
+                        ? 'bg-indigo-50/40 border-indigo-200/80 ring-1 ring-indigo-500/10'
                         : 'bg-slate-50/70 hover:bg-slate-50 border-slate-200/60'
                     }`}
                   >
@@ -428,11 +475,11 @@ export default function GroupDetails() {
         </div>
 
         {/* 6. Expenses List */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Receipt className="w-5 h-5 text-emerald-600" />
-              Recent Expenses ({expenses.length})
+              <span>Recent Expenses ({expenses.length})</span>
             </h2>
             {expenses.length > 0 && (
               <span className="text-xs text-slate-400">Chronological transaction history</span>
@@ -442,14 +489,14 @@ export default function GroupDetails() {
           {loading ? (
             <div className="flex items-center gap-2 text-slate-400 py-8 justify-center">
               <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-              <span className="text-sm">Loading expenses...</span>
+              <span className="text-sm font-medium">Loading expenses...</span>
             </div>
           ) : expenses.length === 0 ? (
-            <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl">
+            <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-2xl">
               <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <p className="text-slate-600 font-medium text-sm">No expenses recorded yet</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Add an expense to start tracking who paid and who owes.
+              <p className="text-slate-700 font-bold text-sm">No expenses recorded yet</p>
+              <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                Add an expense to start tracking group bills and fair splits.
               </p>
             </div>
           ) : (
@@ -485,7 +532,7 @@ export default function GroupDetails() {
                 return (
                   <div
                     key={expense.id}
-                    className="p-4 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/60 rounded-xl flex items-center justify-between gap-4 transition-colors"
+                    className="p-4 bg-slate-50/70 hover:bg-slate-50 border border-slate-200/60 rounded-2xl flex items-center justify-between gap-4 transition-colors"
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
                       <div
@@ -526,6 +573,111 @@ export default function GroupDetails() {
             </div>
           )}
         </div>
+
+        {/* 7. Settlement History */}
+        {settlementHistory.length > 0 && (
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <History className="w-5 h-5 text-emerald-600" />
+                <span>Settlement History ({settlementHistory.length})</span>
+              </h2>
+              <span className="text-xs text-slate-400">Recorded payments log</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {settlementHistory.map((s) => (
+                <div
+                  key={s.id}
+                  className="p-3.5 bg-slate-50/70 border border-slate-200/60 rounded-2xl flex items-center justify-between text-sm"
+                >
+                  <div className="flex items-center gap-2.5 text-slate-700">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                    <span className="font-semibold text-slate-900">{s.from_user_name}</span>
+                    <span className="text-slate-400 text-xs">settled with</span>
+                    <span className="font-semibold text-slate-900">{s.to_user_name}</span>
+                  </div>
+                  <span className="font-bold text-emerald-600 text-sm">
+                    ₹{parseFloat(s.amount).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================= */}
+      {/* FLOATING ACTION SPEED DIAL BUTTON (FAB) */}
+      {/* ========================================================= */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+        {/* Speed Dial Options Menu */}
+        {isSpeedDialOpen && (
+          <div className="flex flex-col items-end gap-2.5 mb-2 animate-in fade-in slide-in-from-bottom-4 duration-200">
+            {/* Action 1: Add Expense */}
+            <button
+              onClick={() => {
+                setIsSpeedDialOpen(false);
+                setIsExpenseModalOpen(true);
+              }}
+              disabled={members.length === 0}
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-lg shadow-emerald-600/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <span>Add Expense</span>
+              <div className="p-1 rounded-full bg-white/20">
+                <Receipt className="w-3.5 h-3.5" />
+              </div>
+            </button>
+
+            {/* Action 2: Settle Up */}
+            <button
+              onClick={() => {
+                setIsSpeedDialOpen(false);
+                setSettleReceiverId('');
+                setSettleAmount('');
+                setIsSettleModalOpen(true);
+              }}
+              disabled={members.length < 2}
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+            >
+              <span>Settle Up</span>
+              <div className="p-1 rounded-full bg-white/20">
+                <HandCoins className="w-3.5 h-3.5" />
+              </div>
+            </button>
+
+            {/* Action 3: Add Member */}
+            <button
+              onClick={() => {
+                setIsSpeedDialOpen(false);
+                setIsMemberModalOpen(true);
+              }}
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 text-white font-semibold text-xs shadow-lg shadow-blue-600/30 hover:scale-105 active:scale-95 transition-all"
+            >
+              <span>Add Member</span>
+              <div className="p-1 rounded-full bg-white/20">
+                <UserPlus className="w-3.5 h-3.5" />
+              </div>
+            </button>
+          </div>
+        )}
+
+        {/* Main Floating Trigger Button */}
+        <button
+          onClick={() => setIsSpeedDialOpen(!isSpeedDialOpen)}
+          aria-label="Quick Actions"
+          className={`w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 ${
+            isSpeedDialOpen
+              ? 'bg-slate-800 rotate-90 shadow-slate-900/40'
+              : 'bg-gradient-to-tr from-emerald-600 via-teal-600 to-indigo-600 shadow-emerald-600/35 hover:shadow-emerald-600/50'
+          }`}
+        >
+          {isSpeedDialOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <Plus className="w-6 h-6" />
+          )}
+        </button>
       </div>
 
       {/* Modals */}
