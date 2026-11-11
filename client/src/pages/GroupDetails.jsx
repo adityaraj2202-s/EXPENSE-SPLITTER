@@ -340,43 +340,72 @@ export default function GroupDetails() {
 
         {/* 5. Members & Net Balances Grid */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
-            Members & Net Balances ({members.length})
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-600" />
+              Members & Net Balances ({members.length})
+            </h2>
+            <span className="text-xs text-slate-400">Current financial position per member</span>
+          </div>
 
           {loading ? (
             <div className="flex items-center gap-2 text-slate-400 py-6 justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
               <span className="text-sm">Loading members...</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3.5">
               {members.map((member) => {
                 const net = balances[member.id] || 0;
                 const isPositive = net > 0.001;
                 const isNegative = net < -0.001;
+                const isCurrentUser = currentUserId && Number(currentUserId) === Number(member.id);
 
                 return (
                   <div
                     key={member.id}
-                    className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/60 flex items-center justify-between"
+                    className={`p-4 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm flex flex-col justify-between gap-3 ${
+                      isCurrentUser
+                        ? 'bg-indigo-50/30 border-indigo-200/70 ring-1 ring-indigo-500/10'
+                        : 'bg-slate-50/70 hover:bg-slate-50 border-slate-200/60'
+                    }`}
                   >
-                    <div className="flex items-center gap-3 truncate">
-                      <div className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-semibold text-sm shrink-0">
+                    {/* Member Details */}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
+                          isPositive
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                            : isNegative
+                            ? 'bg-rose-50 text-rose-700 border-rose-200/60'
+                            : 'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}
+                      >
                         {member.name ? member.name[0].toUpperCase() : 'U'}
                       </div>
-                      <div className="truncate">
-                        <p className="text-sm font-semibold text-slate-800 truncate">
-                          {member.name}
-                        </p>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-semibold text-slate-900 truncate">
+                            {member.name}
+                          </p>
+                          {isCurrentUser && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-md font-semibold bg-indigo-100 text-indigo-700">
+                              You
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-400 truncate">{member.email}</p>
                       </div>
                     </div>
 
-                    <div className="text-right shrink-0 pl-2">
-                      <p
-                        className={`text-xs font-bold ${
+                    {/* Balance Status Footer */}
+                    <div className="pt-2 border-t border-slate-200/50 flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-slate-400">
+                        {isPositive ? 'Gets back' : isNegative ? 'Owes' : 'Settled'}
+                      </span>
+                      <span
+                        className={`text-sm font-bold ${
                           isPositive
                             ? 'text-emerald-600'
                             : isNegative
@@ -389,9 +418,6 @@ export default function GroupDetails() {
                           : isNegative
                           ? `-₹${Math.abs(net).toFixed(2)}`
                           : '₹0.00'}
-                      </p>
-                      <span className="text-[10px] font-medium text-slate-400">
-                        {isPositive ? 'gets back' : isNegative ? 'owes' : 'settled'}
                       </span>
                     </div>
                   </div>
