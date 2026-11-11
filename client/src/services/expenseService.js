@@ -4,7 +4,7 @@ export const getExpenses = async (groupId) => {
   const token = localStorage.getItem('token');
   const response = await fetch(`${API_BASE}/${groupId}/expenses`, {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
   });
@@ -17,19 +17,24 @@ export const getExpenses = async (groupId) => {
   return response.json();
 };
 
-export const createExpense = async (groupId, { description, amount, payerId, splitUserIds }) => {
+export const createExpense = async (groupIdOrPayload, optionalPayload) => {
   const token = localStorage.getItem('token');
+  const isObj = typeof groupIdOrPayload === 'object';
+  const groupId = isObj ? groupIdOrPayload.groupId : groupIdOrPayload;
+  const data = isObj ? groupIdOrPayload : optionalPayload;
+
   const response = await fetch(`${API_BASE}/${groupId}/expenses`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      description,
-      amount: parseFloat(amount),
-      payerId: Number(payerId),
-      splitUserIds: splitUserIds.map(Number),
+      description: data.description,
+      amount: parseFloat(data.amount),
+      category: data.category || 'General',
+      payerId: Number(data.payerId || data.paidById),
+      splitUserIds: Array.isArray(data.splitUserIds) ? data.splitUserIds.map(Number) : [],
     }),
   });
 

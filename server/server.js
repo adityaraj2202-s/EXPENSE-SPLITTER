@@ -205,6 +205,127 @@ app.get('/api/groups', authenticateToken, (req, res) => {
 });
 
 // ==========================================
+// NEW: Splitwise Global Dashboard Overview
+// ==========================================
+app.get('/api/dashboard/summary', authenticateToken, (req, res) => {
+  const currentUserId = req.user.userId;
+  try {
+    const groups = db.prepare(`
+      SELECT g.id, g.name, g.created_by_id, g.created_at,
+        (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) AS member_count
+      FROM groups g
+      JOIN group_members gm ON g.id = gm.group_id
+      WHERE gm.user_id = ?
+      ORDER BY g.created_at DESC
+    `).all(currentUserId);
+
+    let totalYouAreOwed = 0;
+    let totalYouOwe = 0;
+
+    const enrichedGroups = groups.map(g => {
+      const paid = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) AS total
+        FROM expenses WHERE group_id = ? AND paid_by_id = ?
+      `).get(g.id, currentUserId).total;
+
+      const owed = db.prepare(`
+        SELECT COALESCE(SUM(es.share_amount), 0) AS total
+        FROM expense_splits es
+        JOIN expenses e ON es.expense_id = e.id
+        WHERE e.group_id = ? AND es.user_id = ?
+      `).get(g.id, currentUserId).total;
+
+      const settledSent = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) AS total
+        FROM settlements WHERE group_id = ? AND from_user_id = ?
+      `).get(g.id, currentUserId).total;
+
+      const settledReceived = db.prepare(`
+        SELECT COALESCE(SUM(amount), 0) AS total
+        FROM settlements WHERE group_id = ? AND to_user_id = ?
+      `).get(g.id, currentUserId).total;
+
+      const net = Math.round(((paid - owed) + (settledSent - settledReceived)) * 100) / 100;
+      if (net > 0.009) totalYouAreOwed += net;
+      if (net < -0.009) totalYouOwe += Math.abs(net);
+
+      return {
+        ...g,
+        userNetBalance: net
+      };
+    });
+
+    totalYouAreOwed = Math.round(totalYouAreOwed * 100) / 100;
+    totalYouOwe = Math.round(totalYouOwe * 100) / 100;
+    const totalNetBalance = Math.round((totalYouAreOwed - totalYouOwe) * 100) / 100;
+
+    const groupIds = groups.map(g => g.id);
+    let activities = [];
+    if (groupIds.length > 0) {
+      const placeholders = groupIds.map(() => '?').join(',');
+      const recentExpenses = db.prepare(`
+        SELECT 
+          'expense' AS type,
+          e.id,
+          e.group_id,
+          g.name AS group_name,
+          e.description,
+          e.amount,
+          e.category,
+          e.paid_by_id,
+          u.name AS actor_name,
+          e.created_at
+        FROM expenses e
+        JOIN groups g ON e.group_id = g.id
+        JOIN users u ON e.paid_by_id = u.id
+        WHERE e.group_id IN (${placeholders})
+        ORDER BY e.created_at DESC
+        LIMIT 25
+      `).all(...groupIds);
+
+      const recentSettlements = db.prepare(`
+        SELECT 
+          'settlement' AS type,
+          s.id,
+          s.group_id,
+          g.name AS group_name,
+          'Settled debt' AS description,
+          s.amount,
+          'Settlement' AS category,
+          s.from_user_id AS paid_by_id,
+          u_from.name AS actor_name,
+          u_to.name AS receiver_name,
+          s.created_at
+        FROM settlements s
+        JOIN groups g ON s.group_id = g.id
+        JOIN users u_from ON s.from_user_id = u_from.id
+        JOIN users u_to ON s.to_user_id = u_to.id
+        WHERE s.group_id IN (${placeholders})
+        ORDER BY s.created_at DESC
+        LIMIT 25
+      `).all(...groupIds);
+
+      activities = [...recentExpenses, ...recentSettlements]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        .slice(0, 30);
+    }
+
+    res.status(200).json({
+      groups: enrichedGroups,
+      totals: {
+        totalNetBalance,
+        totalYouAreOwed,
+        totalYouOwe
+      },
+      activities
+    });
+  } catch (error) {
+    console.error('Error fetching dashboard summary:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard summary.' });
+  }
+});
+
+// ==========================================
 // DAY 7: Expense Creation & Split Allocations
 // ==========================================
 
