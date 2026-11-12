@@ -74,6 +74,24 @@ export const addGroupMember = async (groupId, email) => {
   return response.json();
 };
 
+export const removeGroupMember = async (groupId, userId) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/${groupId}/members/${userId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to remove member');
+  }
+
+  return response.json();
+};
+
 export const getDashboardSummary = async () => {
   const token = localStorage.getItem('token');
   try {

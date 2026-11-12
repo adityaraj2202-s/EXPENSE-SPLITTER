@@ -17,13 +17,13 @@ import {
 import { createExpense } from '../services/expenseService';
 
 const CATEGORIES = [
-  { id: 'Food', label: 'Food', icon: Utensils, color: 'text-amber-600 bg-amber-50 border-amber-200' },
-  { id: 'Travel', label: 'Travel', icon: Plane, color: 'text-sky-600 bg-sky-50 border-sky-200' },
-  { id: 'Stay', label: 'Stay', icon: Home, color: 'text-indigo-600 bg-indigo-50 border-indigo-200' },
-  { id: 'Groceries', label: 'Groceries', icon: ShoppingBag, color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-  { id: 'Entertainment', label: 'Movies', icon: Film, color: 'text-purple-600 bg-purple-50 border-purple-200' },
-  { id: 'Utilities', label: 'Bills', icon: Zap, color: 'text-yellow-600 bg-yellow-50 border-yellow-200' },
-  { id: 'General', label: 'Other', icon: Tag, color: 'text-slate-600 bg-slate-50 border-slate-200' },
+  { id: 'Food', label: 'Food', icon: Utensils, color: 'text-amber-400 bg-amber-500/10 border-amber-500/30' },
+  { id: 'Travel', label: 'Travel', icon: Plane, color: 'text-sky-400 bg-sky-500/10 border-sky-500/30' },
+  { id: 'Stay', label: 'Stay', icon: Home, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/30' },
+  { id: 'Groceries', label: 'Groceries', icon: ShoppingBag, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' },
+  { id: 'Entertainment', label: 'Movies', icon: Film, color: 'text-purple-400 bg-purple-500/10 border-purple-500/30' },
+  { id: 'Utilities', label: 'Bills', icon: Zap, color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' },
+  { id: 'General', label: 'Other', icon: Tag, color: 'text-slate-400 bg-slate-800/40 border-slate-700' },
 ];
 
 function AddExpenseContent({
@@ -33,6 +33,9 @@ function AddExpenseContent({
   members: propMembers = [],
   onExpenseAdded,
 }) {
+  const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const currentUserId = storedUser.id || null;
+
   const [selectedGroupId, setSelectedGroupId] = useState(
     () => fixedGroupId || (groups.length > 0 ? groups[0].id : '')
   );
@@ -40,9 +43,13 @@ function AddExpenseContent({
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Food');
   const [activeMembers, setActiveMembers] = useState(() => propMembers || []);
-  const [payerId, setPayerId] = useState(() =>
-    propMembers && propMembers.length > 0 ? propMembers[0].id.toString() : ''
-  );
+  const [payerId, setPayerId] = useState(() => {
+    if (propMembers && propMembers.length > 0) {
+      const match = propMembers.find((m) => Number(m.id) === Number(currentUserId));
+      return match ? match.id.toString() : propMembers[0].id.toString();
+    }
+    return '';
+  });
   const [selectedMemberIds, setSelectedMemberIds] = useState(() =>
     (propMembers || []).map((m) => m.id)
   );
@@ -63,7 +70,8 @@ function AddExpenseContent({
             const mList = d.members || [];
             setActiveMembers(mList);
             if (mList.length > 0) {
-              setPayerId(mList[0].id.toString());
+              const match = mList.find((m) => Number(m.id) === Number(currentUserId));
+              setPayerId(match ? match.id.toString() : mList[0].id.toString());
               setSelectedMemberIds(mList.map((m) => m.id));
             }
           }
@@ -74,7 +82,7 @@ function AddExpenseContent({
         ignore = true;
       };
     }
-  }, [selectedGroupId, fixedGroupId]);
+  }, [selectedGroupId, fixedGroupId, currentUserId]);
 
   const toggleMember = (id) => {
     if (selectedMemberIds.includes(id)) {
@@ -150,7 +158,7 @@ function AddExpenseContent({
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-600 rounded-2xl text-xs font-semibold animate-pulse-subtle">
+        <div className="p-3.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-2xl text-xs font-semibold animate-pulse-subtle">
           {error}
         </div>
       )}
@@ -158,16 +166,16 @@ function AddExpenseContent({
       {/* Group Selector if in Global Dashboard */}
       {!fixedGroupId && groups.length > 0 && (
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
             Select Group
           </label>
           <select
             value={selectedGroupId}
             onChange={(e) => setSelectedGroupId(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm font-semibold transition"
+            className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white text-sm font-semibold transition"
           >
             {groups.map((g) => (
-              <option key={g.id} value={g.id}>
+              <option key={g.id} value={g.id} className="bg-slate-900 text-white">
                 {g.name}
               </option>
             ))}
@@ -178,23 +186,23 @@ function AddExpenseContent({
       {/* Description & Amount */}
       <div className="space-y-3.5">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
             Description
           </label>
           <input
             type="text"
             required
-            placeholder="e.g. Dinner with friends, Groceries, Flight tickets"
+            placeholder="e.g. Beach shack dinner, Groceries, Flight tickets"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm font-medium transition"
+            className="w-full px-4 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white placeholder-slate-500 text-sm font-medium transition"
             autoFocus
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Total Amount
             </label>
             <div className="relative">
@@ -209,23 +217,23 @@ function AddExpenseContent({
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 font-extrabold text-sm transition"
+                className="w-full pl-8 pr-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white font-extrabold text-sm transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Paid By
             </label>
             <select
               value={payerId}
               onChange={(e) => setPayerId(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 text-sm font-semibold transition"
+              className="w-full px-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white text-sm font-semibold transition"
             >
               {activeMembers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
+                <option key={m.id} value={m.id} className="bg-slate-900 text-white">
+                  {m.name} {Number(m.id) === Number(currentUserId) ? '(You)' : ''}
                 </option>
               ))}
             </select>
@@ -235,7 +243,7 @@ function AddExpenseContent({
 
       {/* Category Chips */}
       <div>
-        <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+        <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
           Category
         </label>
         <div className="flex flex-wrap gap-1.5">
@@ -249,8 +257,8 @@ function AddExpenseContent({
                 onClick={() => setCategory(cat.id)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
                   isSelected
-                    ? `${cat.color} ring-2 ring-emerald-500/30 scale-105 shadow-xs`
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    ? `${cat.color} ring-2 ring-indigo-500/50 scale-105 shadow-xs font-bold`
+                    : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -262,21 +270,21 @@ function AddExpenseContent({
       </div>
 
       {/* Member Split Selection */}
-      <div className="pt-2 border-t border-slate-100">
+      <div className="pt-2 border-t border-slate-800">
         <div className="flex justify-between items-center mb-2">
-          <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Split With ({selectedMemberIds.length} of {activeMembers.length})
           </label>
           <button
             type="button"
             onClick={handleSelectAllToggle}
-            className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 transition"
+            className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 transition"
           >
             {selectedMemberIds.length === activeMembers.length ? 'Payer only' : 'Select all'}
           </button>
         </div>
 
-        <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-2xl border border-slate-200/80">
+        <div className="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-950/60 rounded-xl border border-slate-800">
           {activeMembers.map((member) => {
             const isSelected = selectedMemberIds.includes(member.id);
             return (
@@ -285,20 +293,20 @@ function AddExpenseContent({
                 onClick={() => toggleMember(member.id)}
                 className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer select-none transition-all ${
                   isSelected
-                    ? 'bg-white border-emerald-300 shadow-xs'
-                    : 'bg-white/60 border-slate-200/60 opacity-60 hover:opacity-100'
+                    ? 'bg-indigo-950/40 border-indigo-500/40 text-white shadow-xs'
+                    : 'bg-slate-900/30 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
                   {isSelected ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   ) : (
-                    <Circle className="w-4 h-4 text-slate-300" />
+                    <Circle className="w-4 h-4 text-slate-600" />
                   )}
-                  <span className="font-semibold text-slate-800 text-xs">{member.name}</span>
+                  <span className="font-semibold text-xs">{member.name}</span>
                 </div>
                 {isSelected && amount > 0 && (
-                  <span className="text-xs font-bold text-emerald-700">
+                  <span className="text-xs font-bold text-emerald-400">
                     ₹{perPersonShare}
                   </span>
                 )}
@@ -310,25 +318,25 @@ function AddExpenseContent({
 
       {/* Live Split Calculation Card */}
       {parseFloat(amount) > 0 && selectedMemberIds.length > 0 && (
-        <div className="p-3.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl flex items-center justify-between text-xs text-emerald-950 shadow-xs">
+        <div className="p-3.5 bg-gradient-to-r from-indigo-950/60 to-emerald-950/40 border border-indigo-500/30 rounded-xl flex items-center justify-between text-xs text-indigo-200 shadow-xs">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-emerald-600 animate-spin" />
-            <span className="font-semibold">
+            <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
+            <span className="font-medium">
               Split equally among {selectedMemberIds.length} members
             </span>
           </div>
-          <span className="font-extrabold text-sm text-emerald-800">
-            ₹{perPersonShare} <span className="text-xs font-normal text-emerald-600">/ person</span>
+          <span className="font-extrabold text-sm text-emerald-400">
+            ₹{perPersonShare} <span className="text-xs font-normal text-slate-400">/ person</span>
           </span>
         </div>
       )}
 
       {/* Submit Button */}
-      <div className="pt-3 border-t border-slate-100">
+      <div className="pt-3 border-t border-slate-800">
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-600 text-white font-bold text-sm rounded-2xl shadow-lg shadow-emerald-600/30 hover:shadow-emerald-600/50 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-500/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {loading ? (
             <>

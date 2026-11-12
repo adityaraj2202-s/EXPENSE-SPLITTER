@@ -81,12 +81,12 @@ export default function ExpenseDetailSlideOver({
 
         {/* User Share Status */}
         {userSplit && !isPayer && (
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200/80 flex items-center justify-between">
-            <div className="flex items-center gap-2.5 text-rose-800 text-xs">
-              <Wallet className="w-4 h-4 text-rose-600 shrink-0" />
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-between">
+            <div className="flex items-center gap-2.5 text-rose-300 text-xs">
+              <Wallet className="w-4 h-4 text-rose-400 shrink-0" />
               <span>
                 Your share of this bill is{' '}
-                <strong className="text-rose-950 font-bold">
+                <strong className="text-rose-200 font-bold">
                   ₹{parseFloat(userSplit.share_amount).toFixed(2)}
                 </strong>
               </span>
@@ -97,7 +97,7 @@ export default function ExpenseDetailSlideOver({
                   onClose();
                   onSettleClick(expense.paid_by_id, userSplit.share_amount);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-semibold shadow-xs flex items-center gap-1 shrink-0"
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1 shrink-0"
               >
                 <HandCoins className="w-3.5 h-3.5" />
                 <span>Settle Up</span>
@@ -107,8 +107,8 @@ export default function ExpenseDetailSlideOver({
         )}
 
         {isPayer && (
-          <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200/80 flex items-center gap-2.5 text-emerald-800 text-xs">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-2.5 text-emerald-300 text-xs">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>
               You paid for this entire expense. Other members owe you their shares.
             </span>
@@ -118,11 +118,11 @@ export default function ExpenseDetailSlideOver({
         {/* Detailed Splits Breakdown List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-indigo-600" />
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-indigo-400" />
               Split Allocations ({(expense.splits || []).length})
             </h4>
-            <span className="text-xs text-slate-400 font-medium">Individual debts</span>
+            <span className="text-xs text-slate-500 font-medium">Individual debts</span>
           </div>
 
           <div className="space-y-2">
@@ -131,22 +131,22 @@ export default function ExpenseDetailSlideOver({
               return (
                 <div
                   key={idx}
-                  className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs transition-all ${
+                  className={`p-3.5 rounded-xl border flex items-center justify-between text-xs transition-all ${
                     isCurrentUser
-                      ? 'bg-indigo-50/50 border-indigo-200/90 shadow-2xs font-semibold'
-                      : 'bg-slate-50/70 border-slate-200/60 text-slate-700'
+                      ? 'bg-indigo-950/40 border-indigo-500/40 text-white font-semibold'
+                      : 'bg-slate-950/50 border-slate-800 text-slate-300'
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[11px]">
+                    <div className="w-7 h-7 rounded-lg bg-slate-800 text-indigo-300 font-bold flex items-center justify-center text-[11px] border border-slate-700">
                       {s.user_name ? s.user_name[0].toUpperCase() : 'U'}
                     </div>
                     <span>
-                      {s.user_name} {isCurrentUser && <span className="text-indigo-600 font-bold">(You)</span>}
+                      {s.user_name} {isCurrentUser && <span className="text-indigo-400 font-bold">(You)</span>}
                     </span>
                   </div>
 
-                  <span className="font-extrabold text-slate-900 text-sm">
+                  <span className="font-extrabold text-white text-sm">
                     ₹{parseFloat(s.share_amount).toFixed(2)}
                   </span>
                 </div>

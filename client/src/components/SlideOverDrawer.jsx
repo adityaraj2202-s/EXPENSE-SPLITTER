@@ -43,7 +43,7 @@ export default function SlideOverDrawer({
       {/* Backdrop */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-slate-950/70 backdrop-blur-sm transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0'
         }`}
       />
@@ -51,12 +51,12 @@ export default function SlideOverDrawer({
       {/* Sliding Panel from Right */}
       <div className="fixed inset-y-0 right-0 pl-10 max-w-full flex">
         <div
-          className={`w-screen ${maxWidth} bg-white shadow-2xl border-l border-slate-200/80 flex flex-col transform transition-transform duration-300 ease-in-out ${
+          className={`w-screen ${maxWidth} bg-slate-900 text-slate-100 shadow-2xl border-l border-slate-800 flex flex-col transform transition-transform duration-300 ease-in-out ${
             isOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
           {/* Header */}
-          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between shrink-0">
+          <div className="px-6 py-5 border-b border-slate-800 bg-slate-950/80 backdrop-blur-md flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               {Icon && (
                 <div
@@ -66,11 +66,11 @@ export default function SlideOverDrawer({
                 </div>
               )}
               <div className="min-w-0">
-                <h3 className="font-bold text-slate-900 text-base truncate">
+                <h3 className="font-bold text-white text-base truncate">
                   {title}
                 </h3>
                 {subtitle && (
-                  <p className="text-xs text-slate-500 truncate mt-0.5">
+                  <p className="text-xs text-slate-400 truncate mt-0.5">
                     {subtitle}
                   </p>
                 )}
@@ -79,7 +79,7 @@ export default function SlideOverDrawer({
 
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition shrink-0"
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition shrink-0"
               aria-label="Close panel"
             >
               <X className="w-5 h-5" />
@@ -87,7 +87,7 @@ export default function SlideOverDrawer({
           </div>
 
           {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-200">
             {children}
           </div>
         </div>

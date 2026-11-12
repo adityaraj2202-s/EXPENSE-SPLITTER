@@ -337,7 +337,7 @@ app.get('/api/dashboard/summary', authenticateToken, (req, res) => {
 // 1. Create an expense and split it among group members
 app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
   const groupId = parseInt(req.params.groupId, 10);
-  const { description, amount, category = 'General', splitUserIds } = req.body;
+  const { description, amount, category = 'General', splitUserIds, payerId, paidById } = req.body;
 
   if (!description || typeof amount !== 'number' || amount <= 0) {
     return res.status(400).json({ error: 'Valid description and positive amount are required.' });
@@ -347,6 +347,8 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'splitUserIds must be a non-empty array of user IDs.' });
   }
 
+  const effectivePayerId = parseInt(payerId || paidById || req.user.userId, 10);
+
   try {
     const membership = db.prepare(`
       SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
@@ -354,6 +356,14 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
 
     if (!membership) {
       return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    const payerMembership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, effectivePayerId);
+
+    if (!payerMembership) {
+      return res.status(400).json({ error: 'The selected payer is not a member of this group.' });
     }
 
     const placeholders = splitUserIds.map(() => '?').join(',');
@@ -373,7 +383,7 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
       `);
       const expenseResult = expenseInsert.run(
         groupId,
-        req.user.userId,
+        effectivePayerId,
         description.trim(),
         amount,
         category.trim()
@@ -407,7 +417,7 @@ app.post('/api/groups/:groupId/expenses', authenticateToken, (req, res) => {
       message: 'Expense created and split successfully',
       expenseId,
       groupId,
-      paidById: req.user.userId,
+      paidById: effectivePayerId,
       amount,
       description: description.trim(),
       splitCount: splitUserIds.length
@@ -664,7 +674,14 @@ app.get('/api/groups/:groupId/members', authenticateToken, (req, res) => {
       ORDER BY gm.joined_at ASC
     `).all(groupId);
 
-    res.status(200).json({ groupId, members });
+    const group = db.prepare('SELECT id, name, created_by_id FROM groups WHERE id = ?').get(groupId);
+
+    res.status(200).json({
+      groupId,
+      groupName: group ? group.name : `Group #${groupId}`,
+      createdById: group ? group.created_by_id : null,
+      members
+    });
   } catch (error) {
     console.error('Error fetching group members:', error);
     res.status(500).json({ error: 'Failed to fetch group members.' });
@@ -724,6 +741,47 @@ app.post('/api/groups/:groupId/members', authenticateToken, (req, res) => {
   } catch (error) {
     console.error('Error adding member to group:', error);
     res.status(500).json({ error: 'Failed to add member to group.' });
+  }
+});
+
+// Remove a member from group
+app.delete('/api/groups/:groupId/members/:userId', authenticateToken, (req, res) => {
+  const groupId = parseInt(req.params.groupId, 10);
+  const targetUserId = parseInt(req.params.userId, 10);
+
+  try {
+    const requesterMembership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, req.user.userId);
+
+    if (!requesterMembership) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
+
+    const targetMembership = db.prepare(`
+      SELECT 1 FROM group_members WHERE group_id = ? AND user_id = ?
+    `).get(groupId, targetUserId);
+
+    if (!targetMembership) {
+      return res.status(404).json({ error: 'User is not a member of this group.' });
+    }
+
+    const group = db.prepare('SELECT created_by_id, name FROM groups WHERE id = ?').get(groupId);
+    if (!group) {
+      return res.status(404).json({ error: 'Group not found.' });
+    }
+
+    if (group.created_by_id === targetUserId && req.user.userId !== targetUserId) {
+      return res.status(400).json({ error: 'The group creator cannot be removed by other members.' });
+    }
+
+    // Check if target user has non-zero net balance before removal (warn or clean up)
+    db.prepare('DELETE FROM group_members WHERE group_id = ? AND user_id = ?').run(groupId, targetUserId);
+
+    res.status(200).json({ message: 'Member removed from group successfully.' });
+  } catch (error) {
+    console.error('Error removing member from group:', error);
+    res.status(500).json({ error: 'Failed to remove member from group.' });
   }
 });
 

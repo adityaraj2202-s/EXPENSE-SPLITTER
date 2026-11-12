@@ -101,27 +101,27 @@ function ExpenseSplitterDashboard() {
       <div className="space-y-6">
 
         {/* ========================================================= */}
-        {/* 1. THREE-WAY BALANCE BANNER (YELLOW THEME) */}
+        {/* 1. THREE-WAY BALANCE BANNER */}
         {/* ========================================================= */}
-        <div className="bg-white rounded-3xl border border-amber-200/80 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-amber-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-800 shadow-2xl overflow-hidden">
+          <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 Expense Overview
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
                 Consolidated balance breakdown across all your shared groups
               </p>
             </div>
 
-            {/* Quick Filter Switcher with Yellow Accent */}
-            <div className="flex items-center gap-1.5 p-1 bg-amber-50 border border-amber-200/60 rounded-2xl text-xs font-bold shrink-0 self-start sm:self-auto">
+            {/* Quick Filter Switcher */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-bold shrink-0 self-start sm:self-auto">
               <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   activeTab === 'dashboard'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs font-black'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-gradient-to-r from-indigo-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 font-black'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Balances
@@ -130,8 +130,8 @@ function ExpenseSplitterDashboard() {
                 onClick={() => setActiveTab('activity')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   activeTab === 'activity'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs font-black'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-gradient-to-r from-indigo-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 font-black'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Recent Activity
@@ -140,8 +140,8 @@ function ExpenseSplitterDashboard() {
                 onClick={() => setActiveTab('groups')}
                 className={`px-3 py-1.5 rounded-xl transition-all ${
                   activeTab === 'groups'
-                    ? 'bg-amber-400 text-slate-950 shadow-xs font-black'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-gradient-to-r from-indigo-500 to-emerald-500 text-white shadow-md shadow-indigo-500/25 font-black'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 All Groups ({data.groups.length})
@@ -150,16 +150,16 @@ function ExpenseSplitterDashboard() {
           </div>
 
           {/* 3 Metrics: Total Balance, You Owe, You are Owed */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-100 bg-amber-50/20">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-800 bg-slate-950/40">
             {/* Total Balance */}
             <div className="p-5 flex items-center gap-4">
               <div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
                   isNetPositive
-                    ? 'bg-amber-100 text-amber-800'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                     : isNetNegative
-                    ? 'bg-rose-50 text-rose-600'
-                    : 'bg-amber-50 text-amber-600'
+                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                    : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
                 }`}
               >
                 <Sparkles className="w-6 h-6" />
@@ -171,10 +171,10 @@ function ExpenseSplitterDashboard() {
                 <p
                   className={`text-2xl font-black mt-0.5 ${
                     isNetPositive
-                      ? 'text-amber-600'
+                      ? 'text-emerald-400'
                       : isNetNegative
-                      ? 'text-rose-600'
-                      : 'text-slate-700'
+                      ? 'text-rose-400'
+                      : 'text-slate-200'
                   }`}
                 >
                   {isNetPositive
@@ -195,14 +195,14 @@ function ExpenseSplitterDashboard() {
 
             {/* You Owe */}
             <div className="p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center shrink-0">
                 <TrendingDown className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   You Owe
                 </p>
-                <p className="text-2xl font-black text-rose-600 mt-0.5">
+                <p className="text-2xl font-black text-rose-400 mt-0.5">
                   ₹{totals.totalYouOwe.toFixed(2)}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
@@ -213,14 +213,14 @@ function ExpenseSplitterDashboard() {
 
             {/* You Are Owed */}
             <div className="p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   You Are Owed
                 </p>
-                <p className="text-2xl font-black text-amber-600 mt-0.5">
+                <p className="text-2xl font-black text-emerald-400 mt-0.5">
                   ₹{totals.totalYouAreOwed.toFixed(2)}
                 </p>
                 <p className="text-[11px] text-slate-400 mt-0.5">
@@ -232,7 +232,7 @@ function ExpenseSplitterDashboard() {
         </div>
 
         {error && (
-          <div className="p-4 bg-rose-50 border border-rose-200 text-rose-600 text-sm rounded-2xl font-medium">
+          <div className="p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-sm rounded-2xl font-medium">
             {error}
           </div>
         )}
@@ -240,7 +240,7 @@ function ExpenseSplitterDashboard() {
         {/* Loading State */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
-            <Loader2 className="w-7 h-7 animate-spin text-amber-500" />
+            <Loader2 className="w-7 h-7 animate-spin text-indigo-400" />
             <span className="text-sm font-semibold">Updating balances...</span>
           </div>
         ) : (
@@ -251,12 +251,12 @@ function ExpenseSplitterDashboard() {
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
                 {groupsYouOwe.length === 0 && groupsYouAreOwed.length === 0 ? (
-                  <div className="bg-white rounded-3xl p-12 text-center border border-amber-200/80 space-y-3">
-                    <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto shadow-inner">
+                  <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl p-12 text-center border border-slate-800 space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
                       <CheckCircle2 className="w-8 h-8" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="font-extrabold text-slate-900 text-lg">
+                      <h3 className="font-extrabold text-white text-lg">
                         You are all settled up!
                       </h3>
                       <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto">
@@ -267,19 +267,19 @@ function ExpenseSplitterDashboard() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* LEFT COLUMN: YOU OWE */}
-                    <div className="bg-white p-6 rounded-3xl border border-amber-200/80 shadow-2xs space-y-4">
-                      <div className="flex items-center justify-between pb-3 border-b border-amber-100">
-                        <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
-                          <TrendingDown className="w-4 h-4 text-rose-500" />
+                    <div className="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+                          <TrendingDown className="w-4 h-4 text-rose-400" />
                           <span>You Owe ({groupsYouOwe.length})</span>
                         </h3>
-                        <span className="text-xs font-black text-rose-600">
+                        <span className="text-xs font-black text-rose-400">
                           ₹{totals.totalYouOwe.toFixed(2)}
                         </span>
                       </div>
 
                       {groupsYouOwe.length === 0 ? (
-                        <p className="text-xs text-slate-400 py-6 text-center">
+                        <p className="text-xs text-slate-500 py-6 text-center">
                           You do not owe anything right now! 🎉
                         </p>
                       ) : (
@@ -287,22 +287,22 @@ function ExpenseSplitterDashboard() {
                           {groupsYouOwe.map((g) => (
                             <div
                               key={g.id}
-                              className="p-3.5 bg-rose-50/40 border border-rose-100 rounded-2xl flex items-center justify-between gap-3 transition-all hover:bg-rose-50/70"
+                              className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-between gap-3 transition-all hover:bg-rose-500/20"
                             >
                               <div
                                 onClick={() => navigate(`/groups/${g.id}`)}
                                 className="cursor-pointer min-w-0"
                               >
-                                <h4 className="font-bold text-slate-900 text-sm truncate hover:text-amber-600">
+                                <h4 className="font-bold text-white text-sm truncate hover:text-indigo-300">
                                   {g.name}
                                 </h4>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-slate-400">
                                   {g.member_count || 1} members
                                 </p>
                               </div>
 
                               <div className="flex items-center gap-3 shrink-0">
-                                <span className="font-black text-rose-600 text-base">
+                                <span className="font-black text-rose-400 text-base">
                                   ₹{Math.abs(g.userNetBalance).toFixed(2)}
                                 </span>
                                 <button
@@ -311,7 +311,7 @@ function ExpenseSplitterDashboard() {
                                     setSettleAmount(Math.abs(g.userNetBalance));
                                     setSettleDrawerOpen(true);
                                   }}
-                                  className="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-xs rounded-xl shadow-xs active:scale-[0.98] transition-all"
+                                  className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-emerald-500 hover:from-indigo-600 hover:to-emerald-600 text-white font-black text-xs rounded-xl shadow-xs active:scale-[0.98] transition-all"
                                 >
                                   Settle
                                 </button>
@@ -323,19 +323,19 @@ function ExpenseSplitterDashboard() {
                     </div>
 
                     {/* RIGHT COLUMN: YOU ARE OWED */}
-                    <div className="bg-white p-6 rounded-3xl border border-amber-200/80 shadow-2xs space-y-4">
-                      <div className="flex items-center justify-between pb-3 border-b border-amber-100">
-                        <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-amber-600" />
+                    <div className="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-emerald-400" />
                           <span>You Are Owed ({groupsYouAreOwed.length})</span>
                         </h3>
-                        <span className="text-xs font-black text-amber-600">
+                        <span className="text-xs font-black text-emerald-400">
                           ₹{totals.totalYouAreOwed.toFixed(2)}
                         </span>
                       </div>
 
                       {groupsYouAreOwed.length === 0 ? (
-                        <p className="text-xs text-slate-400 py-6 text-center">
+                        <p className="text-xs text-slate-500 py-6 text-center">
                           Nobody owes you money in your groups right now.
                         </p>
                       ) : (
@@ -344,19 +344,19 @@ function ExpenseSplitterDashboard() {
                             <div
                               key={g.id}
                               onClick={() => navigate(`/groups/${g.id}`)}
-                              className="p-3.5 bg-amber-50/50 border border-amber-200/60 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-all hover:bg-amber-100/60"
+                              className="p-3.5 bg-indigo-950/40 border border-indigo-500/30 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-all hover:bg-indigo-900/40"
                             >
                               <div className="min-w-0">
-                                <h4 className="font-bold text-slate-900 text-sm truncate hover:text-amber-700">
+                                <h4 className="font-bold text-white text-sm truncate hover:text-indigo-300">
                                   {g.name}
                                 </h4>
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-slate-400">
                                   {g.member_count || 1} members
                                 </p>
                               </div>
 
                               <div className="text-right shrink-0">
-                                <span className="font-black text-amber-600 text-base">
+                                <span className="font-black text-emerald-400 text-base">
                                   +₹{g.userNetBalance.toFixed(2)}
                                 </span>
                               </div>
@@ -374,10 +374,10 @@ function ExpenseSplitterDashboard() {
             {/* TAB 2: RECENT ACTIVITY TIMELINE */}
             {/* ========================================================= */}
             {activeTab === 'activity' && (
-              <div className="bg-white p-6 rounded-3xl border border-amber-200/80 shadow-2xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-amber-100">
-                  <h3 className="font-extrabold text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
-                    <History className="w-4 h-4 text-amber-600" />
+              <div className="bg-slate-900/60 backdrop-blur-xl p-6 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <h3 className="font-extrabold text-white text-sm uppercase tracking-wider flex items-center gap-2">
+                    <History className="w-4 h-4 text-indigo-400" />
                     <span>Live Activity Stream</span>
                   </h3>
                   <span className="text-xs text-slate-400">
@@ -386,10 +386,10 @@ function ExpenseSplitterDashboard() {
                 </div>
 
                 {data.activities.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400 space-y-1">
-                    <Receipt className="w-8 h-8 mx-auto text-slate-300" />
-                    <p className="text-sm font-bold text-slate-600">No activity logged yet</p>
-                    <p className="text-xs">Add an expense or settle a payment to see updates.</p>
+                  <div className="text-center py-12 text-slate-500 space-y-1">
+                    <Receipt className="w-8 h-8 mx-auto text-slate-600" />
+                    <p className="text-sm font-bold text-slate-400">No activity logged yet</p>
+                    <p className="text-xs text-slate-500">Add an expense or settle a payment to see updates.</p>
                   </div>
                 ) : (
                   <div className="space-y-2.5">
@@ -414,27 +414,27 @@ function ExpenseSplitterDashboard() {
                           }}
                           className={`p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all ${
                             isSettlement
-                              ? 'bg-amber-50/40 border-amber-200/60'
-                              : 'bg-white hover:bg-amber-50/50 border-amber-200/70 shadow-2xs cursor-pointer'
+                              ? 'bg-emerald-500/10 border-emerald-500/20'
+                              : 'bg-slate-950/50 hover:bg-slate-900/80 border-slate-800 shadow-sm cursor-pointer'
                           }`}
                         >
                           <div className="flex items-center gap-3.5 min-w-0">
                             <div
                               className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
                                 isSettlement
-                                  ? 'bg-amber-200/80 text-amber-950'
-                                  : 'bg-amber-100 text-amber-800'
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                  : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                               }`}
                             >
                               {isSettlement ? (
-                                <CheckCircle2 className="w-5 h-5 text-amber-700" />
+                                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                               ) : (
-                                <Receipt className="w-5 h-5 text-amber-700" />
+                                <Receipt className="w-5 h-5 text-indigo-400" />
                               )}
                             </div>
 
                             <div className="min-w-0">
-                              <p className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                              <p className="text-xs sm:text-sm font-bold text-white truncate">
                                 {isSettlement ? (
                                   <span>
                                     <strong>{item.actor_name}</strong> settled with{' '}
@@ -448,12 +448,12 @@ function ExpenseSplitterDashboard() {
                                 )}
                               </p>
                               <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
-                                <span className="font-semibold text-amber-700">
+                                <span className="font-semibold text-indigo-400">
                                   {item.group_name}
                                 </span>
                                 <span>•</span>
                                 <span className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
+                                  <Calendar className="w-3 h-3 text-slate-500" />
                                   {formattedDate}
                                 </span>
                               </div>
@@ -463,13 +463,13 @@ function ExpenseSplitterDashboard() {
                           <div className="text-right shrink-0">
                             <span
                               className={`text-sm sm:text-base font-black ${
-                                isSettlement ? 'text-amber-600' : 'text-slate-900'
+                                isSettlement ? 'text-emerald-400' : 'text-white'
                               }`}
                             >
                               ₹{parseFloat(item.amount).toFixed(2)}
                             </span>
                             {!isSettlement && (
-                              <p className="text-[10px] text-slate-400">Click for split</p>
+                              <p className="text-[10px] text-slate-500">Click for split</p>
                             )}
                           </div>
                         </div>
@@ -487,21 +487,21 @@ function ExpenseSplitterDashboard() {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="relative w-full sm:w-72">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
                       placeholder="Filter groups..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-amber-200 rounded-2xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 transition shadow-2xs"
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-950/80 border border-slate-700 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-sm"
                     />
                   </div>
                 </div>
 
                 {filteredGroups.length === 0 ? (
-                  <div className="bg-white rounded-3xl p-10 text-center border border-amber-200/80">
-                    <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                    <p className="font-bold text-slate-700 text-sm">No groups found</p>
+                  <div className="bg-slate-900/60 backdrop-blur-xl rounded-3xl p-10 text-center border border-slate-800">
+                    <Users className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                    <p className="font-bold text-slate-400 text-sm">No groups found</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -514,14 +514,14 @@ function ExpenseSplitterDashboard() {
                         <div
                           key={group.id}
                           onClick={() => navigate(`/groups/${group.id}`)}
-                          className="bg-white p-5 rounded-3xl border border-amber-200/80 hover:border-amber-400 hover:shadow-lg transition-all duration-200 cursor-pointer flex items-center justify-between group"
+                          className="bg-slate-900/60 backdrop-blur-xl p-5 rounded-3xl border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-900/90 hover:shadow-xl transition-all duration-200 cursor-pointer flex items-center justify-between group"
                         >
                           <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-sm group-hover:scale-105 transition-transform shrink-0">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 text-white flex items-center justify-center font-black text-lg shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform shrink-0">
                               {group.name ? group.name[0].toUpperCase() : 'G'}
                             </div>
                             <div className="min-w-0">
-                              <h4 className="font-extrabold text-slate-900 text-sm truncate group-hover:text-amber-600 transition">
+                              <h4 className="font-extrabold text-white text-sm truncate group-hover:text-indigo-400 transition">
                                 {group.name}
                               </h4>
                               <p className="text-xs text-slate-400 mt-0.5">
@@ -532,16 +532,16 @@ function ExpenseSplitterDashboard() {
 
                           <div className="text-right shrink-0 flex items-center gap-2">
                             <div>
-                              <p className="text-[10px] uppercase font-bold text-slate-400">
+                              <p className="text-[10px] uppercase font-bold text-slate-500">
                                 {isPositive ? 'You get' : isNegative ? 'You owe' : 'Status'}
                               </p>
                               <span
                                 className={`text-sm font-extrabold ${
                                   isPositive
-                                    ? 'text-amber-600'
+                                    ? 'text-emerald-400'
                                     : isNegative
-                                    ? 'text-rose-600'
-                                    : 'text-slate-400'
+                                    ? 'text-rose-400'
+                                    : 'text-slate-500'
                                 }`}
                               >
                                 {isPositive
@@ -551,7 +551,7 @@ function ExpenseSplitterDashboard() {
                                   : 'Settled'}
                               </span>
                             </div>
-                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 group-hover:translate-x-1 transition-all" />
+                            <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
                           </div>
                         </div>
                       );
