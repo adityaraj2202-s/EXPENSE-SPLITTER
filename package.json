@@ -6,7 +6,6 @@
   "scripts": {
     "install:all": "cd client && npm install && cd ../server && npm install",
     "build": "cd client && npm install && npm run build",
-    "prestart": "cd client && npm install && npm run build",
     "start": "cd server && NODE_ENV=production node server.js",
     "dev": "concurrently \"cd server && node server.js\" \"cd client && npm run dev\""
   },
