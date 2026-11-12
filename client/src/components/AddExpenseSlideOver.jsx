@@ -54,7 +54,7 @@ function AddExpenseContent({
     if (!fixedGroupId && selectedGroupId) {
       let ignore = false;
       const token = localStorage.getItem('token');
-      fetch(`http://localhost:5001/api/groups/${selectedGroupId}/members`, {
+      fetch(`/api/groups/${selectedGroupId}/members`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((r) => r.json())

@@ -1,0 +1,15 @@
+{
+  "name": "expense-splitter",
+  "version": "1.0.0",
+  "description": "Full-stack Expense Splitter app",
+  "type": "module",
+  "scripts": {
+    "install:all": "cd client && npm install && cd ../server && npm install",
+    "build": "cd client && npm install && npm run build",
+    "start": "cd server && NODE_ENV=production node server.js",
+    "dev": "concurrently \"cd server && node server.js\" \"cd client && npm run dev\""
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

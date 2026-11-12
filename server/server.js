@@ -3,11 +3,16 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import db from './db.js';
 import { authenticateToken } from './authMiddleware.js';
 import { simplifyDebts } from './simplifyDebts.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -17,10 +22,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key';
 app.use(cors());
 app.use(express.json());
 
-// Root test route
-app.get('/', (req, res) => {
-  res.send('Expense Splitter API is running');
-});
+// Serve React frontend static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '..', 'client', 'dist')));
+}
 
 // Health check endpoint (Day 3 Deliverable)
 app.get('/health', (req, res) => {
@@ -812,6 +817,15 @@ app.get('/api/groups/:groupId/simplified-debts', authenticateToken, (req, res) =
     res.status(500).json({ error: 'Failed to compute simplified debts.' });
   }
 });
+
+// ==========================================
+// Catch-all: serve React app for non-API routes (production)
+// ==========================================
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+  });
+}
 
 // ==========================================
 // Start Server

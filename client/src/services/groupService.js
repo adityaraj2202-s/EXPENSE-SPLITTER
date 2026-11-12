@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:5001/api/groups';
+const API_URL = (import.meta.env.VITE_API_URL || '/api') + '/groups';
 
 export const getGroups = async () => {
   const token = localStorage.getItem('token');
@@ -77,7 +77,7 @@ export const addGroupMember = async (groupId, email) => {
 export const getDashboardSummary = async () => {
   const token = localStorage.getItem('token');
   try {
-    const response = await fetch('http://localhost:5001/api/dashboard/summary', {
+    const response = await fetch('/api/dashboard/summary', {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
