@@ -822,8 +822,12 @@ app.get('/api/groups/:groupId/simplified-debts', authenticateToken, (req, res) =
 // Catch-all: serve React app for non-API routes (production)
 // ==========================================
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+  app.use((req, res) => {
+    if (req.method === 'GET') {
+      res.sendFile(path.join(__dirname, '..', 'client', 'dist', 'index.html'));
+    } else {
+      res.status(404).json({ error: 'Endpoint not found' });
+    }
   });
 }
 
