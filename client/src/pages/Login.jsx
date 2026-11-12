@@ -55,6 +55,7 @@ export default function Login() {
 
   const handleQuickFill = (demoEmail) => {
     setEmail(demoEmail);
+    setPassword('password123');
     setError('');
   };
 
@@ -239,7 +240,7 @@ export default function Login() {
                   <div className="pt-1">
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
                       <Sparkles className="w-3 h-3 text-indigo-400" />
-                      Quick fill registered accounts:
+                      Quick fill demo accounts (Pass: password123):
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {demoAccounts.map((acc) => (
