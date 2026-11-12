@@ -159,15 +159,47 @@ export default function GroupDetails() {
       : null;
 
   // Filtered expenses based on search & category
+  // Uses same keyword-override logic as the display rendering so filters stay consistent
   const filteredExpenses = useMemo(() => {
     return expenses.filter((exp) => {
       const matchesSearch =
         (exp.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (exp.paid_by_name || '').toLowerCase().includes(searchQuery.toLowerCase());
 
+      // Derive effective category the same way the JSX display does
+      const rawCat = (exp.category || 'General').toLowerCase();
+      const desc = (exp.description || '').toLowerCase();
+      let effectiveCat = rawCat;
+      if (rawCat === 'general') {
+        if (
+          desc.includes('dinner') ||
+          desc.includes('lunch') ||
+          desc.includes('food') ||
+          desc.includes('beach') ||
+          desc.includes('snack') ||
+          desc.includes('breakfast') ||
+          desc.includes('restaurant') ||
+          desc.includes('cafe') ||
+          desc.includes('pizza') ||
+          desc.includes('burger')
+        ) {
+          effectiveCat = 'food';
+        } else if (desc.includes('uber') || desc.includes('taxi') || desc.includes('bus') || desc.includes('flight') || desc.includes('train')) {
+          effectiveCat = 'travel';
+        } else if (desc.includes('hotel') || desc.includes('airbnb') || desc.includes('stay') || desc.includes('room')) {
+          effectiveCat = 'stay';
+        } else if (desc.includes('grocery') || desc.includes('groceries') || desc.includes('mart') || desc.includes('supermarket')) {
+          effectiveCat = 'groceries';
+        } else if (desc.includes('movie') || desc.includes('concert') || desc.includes('show') || desc.includes('game')) {
+          effectiveCat = 'entertainment';
+        } else if (desc.includes('electric') || desc.includes('water') || desc.includes('internet') || desc.includes('wifi') || desc.includes('bill')) {
+          effectiveCat = 'utilities';
+        }
+      }
+
       const matchesCat =
         selectedCategory === 'All' ||
-        (exp.category || 'General').toLowerCase() === selectedCategory.toLowerCase();
+        effectiveCat === selectedCategory.toLowerCase();
 
       return matchesSearch && matchesCat;
     });
@@ -185,7 +217,7 @@ export default function GroupDetails() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <button
             onClick={() => navigate('/')}
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-amber-600 transition-colors w-fit group"
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-teal-600 transition-colors w-fit group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             <span>All Groups & Overview</span>
@@ -194,9 +226,9 @@ export default function GroupDetails() {
           <div className="flex items-center gap-2.5 flex-wrap">
             <button
               onClick={() => setIsMemberDrawerOpen(true)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-amber-300 hover:border-amber-400 text-slate-800 hover:bg-amber-50 text-xs font-bold rounded-xl shadow-2xs transition-all"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-teal-300 hover:border-teal-400 text-slate-800 hover:bg-teal-50 text-xs font-bold rounded-xl shadow-2xs transition-all"
             >
-              <UserPlus className="w-4 h-4 text-amber-600" />
+              <UserPlus className="w-4 h-4 text-teal-600" />
               <span>Add Member</span>
             </button>
 
@@ -207,16 +239,16 @@ export default function GroupDetails() {
                 setIsSettleDrawerOpen(true);
               }}
               disabled={members.length < 2}
-              className="flex items-center gap-2 px-3.5 py-2 bg-amber-50 border border-amber-300 text-amber-950 hover:bg-amber-100 text-xs font-bold rounded-xl transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-3.5 py-2 bg-teal-50 border border-teal-300 text-teal-950 hover:bg-teal-100 text-xs font-bold rounded-xl transition-all disabled:opacity-50"
             >
-              <HandCoins className="w-4 h-4 text-amber-600" />
+              <HandCoins className="w-4 h-4 text-teal-600" />
               <span>Settle Up</span>
             </button>
 
             <button
               onClick={() => setIsExpenseDrawerOpen(true)}
               disabled={members.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 text-xs font-black rounded-xl shadow-md shadow-amber-400/25 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-600 hover:from-teal-600 hover:to-teal-500 text-slate-950 text-xs font-black rounded-xl shadow-md shadow-teal-500/25 transition-all disabled:opacity-50"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
               <span>Add Expense</span>
@@ -225,11 +257,11 @@ export default function GroupDetails() {
         </div>
 
         {/* Hero Header & Metric Stats Grid */}
-        <div className="bg-white rounded-3xl border border-amber-200/90 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-3xl border border-teal-200/90 shadow-sm overflow-hidden">
           {/* Header Title */}
-          <div className="p-6 border-b border-amber-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="p-6 border-b border-teal-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-500 flex items-center justify-center text-slate-950 text-xl font-black shadow-md shadow-amber-400/25 shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-500 via-teal-400 to-teal-600 flex items-center justify-center text-slate-950 text-xl font-black shadow-md shadow-teal-500/25 shrink-0">
                 #{groupId}
               </div>
               <div>
@@ -237,7 +269,7 @@ export default function GroupDetails() {
                   <h1 className="text-2xl font-black tracking-tight text-slate-900">
                     Group #{groupId}
                   </h1>
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300/80">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-900 border border-teal-300/80">
                     {members.length} {members.length === 1 ? 'member' : 'members'}
                   </span>
                 </div>
@@ -270,7 +302,7 @@ export default function GroupDetails() {
           </div>
 
           {/* 3 Metric Stat Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-100 bg-amber-50/20">
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-amber-100 bg-teal-50/20">
             {/* Stat 1: Total Group Spend */}
             <div className="p-5 flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
@@ -296,7 +328,7 @@ export default function GroupDetails() {
                   userNetBalance === null || userNetBalance === 0
                     ? 'bg-slate-100 text-slate-600'
                     : userNetBalance > 0
-                    ? 'bg-amber-100 text-amber-800'
+                    ? 'bg-teal-100 text-teal-800'
                     : 'bg-rose-50 text-rose-600'
                 }`}
               >
@@ -311,7 +343,7 @@ export default function GroupDetails() {
                     userNetBalance === null || userNetBalance === 0
                       ? 'text-slate-800'
                       : userNetBalance > 0
-                      ? 'text-amber-600'
+                      ? 'text-teal-600'
                       : 'text-rose-600'
                   }`}
                 >
@@ -335,7 +367,7 @@ export default function GroupDetails() {
 
             {/* Stat 3: Suggested Transfers Needed */}
             <div className="p-5 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-800 flex items-center justify-center shrink-0">
                 <Scale className="w-6 h-6" />
               </div>
               <div>
@@ -348,7 +380,7 @@ export default function GroupDetails() {
                     {settlements.length === 1 ? 'transfer' : 'transfers'}
                   </span>
                 </p>
-                <p className="text-[11px] text-amber-700 font-bold mt-0.5 flex items-center gap-1">
+                <p className="text-[11px] text-teal-700 font-bold mt-0.5 flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> Minimized payments
                 </p>
               </div>
@@ -363,27 +395,27 @@ export default function GroupDetails() {
         )}
 
         {/* Suggested Settlements Section */}
-        <div className="bg-white p-6 rounded-3xl border border-amber-200/90 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-3xl border border-teal-200/90 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <Scale className="w-5 h-5 text-amber-600" />
+              <Scale className="w-5 h-5 text-teal-600" />
               <span>Smart Debt Simplification</span>
             </h2>
             {settlements.length > 0 && (
-              <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Greedy 2-Pointer Optimized
+              <span className="text-xs font-bold text-teal-900 bg-teal-100 px-2.5 py-1 rounded-full border border-teal-300 flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-teal-600" /> Greedy 2-Pointer Optimized
               </span>
             )}
           </div>
 
           {loading ? (
             <div className="flex items-center gap-2 text-slate-400 py-6 justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+              <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
               <span className="text-sm font-medium">Calculating optimal settlements...</span>
             </div>
           ) : settlements.length === 0 ? (
-            <div className="flex items-center gap-3 p-4 bg-amber-50/80 border border-amber-200 rounded-2xl text-amber-900 text-sm">
-              <CheckCircle2 className="w-5 h-5 text-amber-600 shrink-0" />
+            <div className="flex items-center gap-3 p-4 bg-teal-50/80 border border-teal-200 rounded-2xl text-teal-900 text-sm">
+              <CheckCircle2 className="w-5 h-5 text-teal-600 shrink-0" />
               <span className="font-bold">All settled up! No outstanding balances in this group.</span>
             </div>
           ) : (
@@ -410,7 +442,7 @@ export default function GroupDetails() {
                       isCurrentUserPayer
                         ? 'bg-rose-50/40 border-rose-200/80 shadow-xs'
                         : isCurrentUserReceiver
-                        ? 'bg-amber-50/50 border-amber-200/80 shadow-xs'
+                        ? 'bg-teal-50/50 border-teal-200/80 shadow-xs'
                         : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200/70'
                     }`}
                   >
@@ -426,15 +458,15 @@ export default function GroupDetails() {
 
                       <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white border border-slate-200/80 rounded-full shadow-2xs">
                         <span className="text-[11px] font-medium text-slate-500">pays</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-amber-500" />
+                        <ArrowRight className="w-3.5 h-3.5 text-teal-500" />
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-xs">
+                        <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 flex items-center justify-center font-bold text-xs">
                           {receiverName[0]?.toUpperCase() || 'U'}
                         </div>
                         <span className="font-bold text-slate-800 text-sm">
-                          {receiverName} {isCurrentUserReceiver && <span className="text-amber-600 text-xs font-black">(You)</span>}
+                          {receiverName} {isCurrentUserReceiver && <span className="text-teal-600 text-xs font-black">(You)</span>}
                         </span>
                       </div>
                     </div>
@@ -445,7 +477,7 @@ export default function GroupDetails() {
                       </span>
                       <button
                         onClick={() => openSettleWithPrefill(receiverId, item.amount)}
-                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 active:scale-[0.98] text-slate-950 text-xs font-black rounded-xl shadow-xs transition-all"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-teal-500 via-teal-400 to-teal-600 hover:from-teal-600 hover:to-teal-500 active:scale-[0.98] text-slate-950 text-xs font-black rounded-xl shadow-xs transition-all"
                       >
                         <HandCoins className="w-3.5 h-3.5" />
                         <span>Settle Now</span>
@@ -459,10 +491,10 @@ export default function GroupDetails() {
         </div>
 
         {/* Members & Net Balances Grid */}
-        <div className="bg-white p-6 rounded-3xl border border-amber-200/90 shadow-2xs space-y-4">
+        <div className="bg-white p-6 rounded-3xl border border-teal-200/90 shadow-2xs space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <Users className="w-5 h-5 text-amber-600" />
+              <Users className="w-5 h-5 text-teal-600" />
               <span>Members & Net Positions ({members.length})</span>
             </h2>
             <span className="text-xs text-slate-400">Current financial position per member</span>
@@ -470,7 +502,7 @@ export default function GroupDetails() {
 
           {loading ? (
             <div className="flex items-center gap-2 text-slate-400 py-6 justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+              <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
               <span className="text-sm font-medium">Loading members...</span>
             </div>
           ) : (
@@ -486,7 +518,7 @@ export default function GroupDetails() {
                     key={member.id}
                     className={`p-4 rounded-2xl border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm flex flex-col justify-between gap-3 ${
                       isCurrentUser
-                        ? 'bg-amber-50/50 border-amber-300 ring-1 ring-amber-400/20'
+                        ? 'bg-teal-50/50 border-teal-300 ring-1 ring-teal-400/20'
                         : 'bg-slate-50/70 hover:bg-slate-50 border-slate-200/60'
                     }`}
                   >
@@ -494,7 +526,7 @@ export default function GroupDetails() {
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border ${
                           isPositive
-                            ? 'bg-amber-100 text-amber-900 border-amber-300'
+                            ? 'bg-teal-100 text-teal-900 border-teal-300'
                             : isNegative
                             ? 'bg-rose-50 text-rose-700 border-rose-200/60'
                             : 'bg-slate-100 text-slate-700 border-slate-200'
@@ -509,7 +541,7 @@ export default function GroupDetails() {
                             {member.name}
                           </p>
                           {isCurrentUser && (
-                            <span className="text-[10px] px-1.5 py-0.2 rounded-md font-bold bg-amber-200 text-amber-950">
+                            <span className="text-[10px] px-1.5 py-0.2 rounded-md font-bold bg-teal-200 text-teal-950">
                               You
                             </span>
                           )}
@@ -525,7 +557,7 @@ export default function GroupDetails() {
                       <span
                         className={`text-sm font-black ${
                           isPositive
-                            ? 'text-amber-600'
+                            ? 'text-teal-600'
                             : isNegative
                             ? 'text-rose-600'
                             : 'text-slate-400'
@@ -546,11 +578,11 @@ export default function GroupDetails() {
         </div>
 
         {/* Expenses List with Search, Filters & Sliding Drawer Details */}
-        <div className="bg-white p-6 rounded-3xl border border-amber-200/90 shadow-2xs space-y-5">
+        <div className="bg-white p-6 rounded-3xl border border-teal-200/90 shadow-2xs space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-amber-600" />
+                <Receipt className="w-5 h-5 text-teal-600" />
                 <span>Expense Ledger ({filteredExpenses.length})</span>
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -566,7 +598,7 @@ export default function GroupDetails() {
                 placeholder="Search expense or payer..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-amber-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-400 transition"
+                className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-teal-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
               />
             </div>
           </div>
@@ -582,8 +614,8 @@ export default function GroupDetails() {
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
                   selectedCategory === cat
-                    ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                    : 'bg-amber-50 text-slate-700 hover:bg-amber-100 border border-amber-200/60'
+                    ? 'bg-teal-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-teal-50 text-slate-700 hover:bg-teal-100 border border-teal-200/60'
                 }`}
               >
                 {cat}
@@ -593,11 +625,11 @@ export default function GroupDetails() {
 
           {loading ? (
             <div className="flex items-center gap-2 text-slate-400 py-8 justify-center">
-              <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
+              <Loader2 className="w-4 h-4 animate-spin text-teal-500" />
               <span className="text-sm font-medium">Loading expenses...</span>
             </div>
           ) : filteredExpenses.length === 0 ? (
-            <div className="text-center py-10 border-2 border-dashed border-amber-200 rounded-2xl">
+            <div className="text-center py-10 border-2 border-dashed border-teal-200 rounded-2xl">
               <Receipt className="w-10 h-10 text-slate-300 mx-auto mb-2" />
               <p className="text-slate-700 font-bold text-sm">
                 {searchQuery || selectedCategory !== 'All' ? 'No matching expenses' : 'No expenses recorded yet'}
@@ -643,11 +675,11 @@ export default function GroupDetails() {
                 return (
                   <div
                     key={expense.id}
-                    className="border border-amber-200/80 rounded-2xl overflow-hidden transition-all bg-white hover:border-amber-400 shadow-2xs"
+                    className="border border-teal-200/80 rounded-2xl overflow-hidden transition-all bg-white hover:border-teal-400 shadow-2xs"
                   >
                     <div
                       onClick={() => setSelectedExpenseForDrawer(expense)}
-                      className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-amber-50/40 transition-colors"
+                      className="p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-teal-50/40 transition-colors"
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
                         <div
@@ -660,7 +692,7 @@ export default function GroupDetails() {
                             <p className="font-extrabold text-slate-900 text-sm truncate">
                               {expense.description}
                             </p>
-                            <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shrink-0">
+                            <span className="text-[10px] px-2 py-0.5 rounded-md font-bold bg-teal-50 text-teal-800 border border-teal-200/80 shrink-0">
                               {meta.label}
                             </span>
                           </div>
@@ -701,7 +733,7 @@ export default function GroupDetails() {
                     </div>
 
                     {isExpanded && expense.splits && expense.splits.length > 0 && (
-                      <div className="px-4 py-3 bg-amber-50/50 border-t border-amber-100 text-xs space-y-2 animate-in fade-in duration-150">
+                      <div className="px-4 py-3 bg-teal-50/50 border-t border-teal-100 text-xs space-y-2 animate-in fade-in duration-150">
                         <p className="font-bold text-slate-500 uppercase tracking-wider text-[10px]">
                           Split Breakdown ({expense.splits.length} members)
                         </p>
@@ -709,7 +741,7 @@ export default function GroupDetails() {
                           {expense.splits.map((s, idx) => (
                             <div
                               key={idx}
-                              className="p-2 rounded-xl bg-white border border-amber-200/70 flex items-center justify-between"
+                              className="p-2 rounded-xl bg-white border border-teal-200/70 flex items-center justify-between"
                             >
                               <span className="font-semibold text-slate-700 truncate">
                                 {s.user_name}
@@ -731,10 +763,10 @@ export default function GroupDetails() {
 
         {/* Settlement History */}
         {settlementHistory.length > 0 && (
-          <div className="bg-white p-6 rounded-3xl border border-amber-200/90 shadow-2xs space-y-4">
+          <div className="bg-white p-6 rounded-3xl border border-teal-200/90 shadow-2xs space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <History className="w-5 h-5 text-amber-600" />
+                <History className="w-5 h-5 text-teal-600" />
                 <span>Verified Settlement History ({settlementHistory.length})</span>
               </h2>
               <span className="text-xs text-slate-400">Recorded payments ledger</span>
@@ -744,15 +776,15 @@ export default function GroupDetails() {
               {settlementHistory.map((s) => (
                 <div
                   key={s.id}
-                  className="p-3.5 bg-amber-50/40 border border-amber-200/60 rounded-2xl flex items-center justify-between text-sm"
+                  className="p-3.5 bg-teal-50/40 border border-teal-200/60 rounded-2xl flex items-center justify-between text-sm"
                 >
                   <div className="flex items-center gap-2.5 text-slate-700">
-                    <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
                     <span className="font-bold text-slate-900">{s.from_user_name}</span>
                     <span className="text-slate-400 text-xs">settled with</span>
                     <span className="font-bold text-slate-900">{s.to_user_name}</span>
                   </div>
-                  <span className="font-bold text-amber-600 text-sm">
+                  <span className="font-bold text-teal-600 text-sm">
                     ₹{parseFloat(s.amount).toFixed(2)}
                   </span>
                 </div>
@@ -772,7 +804,7 @@ export default function GroupDetails() {
                 setIsExpenseDrawerOpen(true);
               }}
               disabled={members.length === 0}
-              className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-500 hover:to-yellow-500 text-slate-950 font-black text-xs shadow-lg shadow-amber-400/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-teal-500 via-teal-400 to-teal-600 hover:from-teal-600 hover:to-teal-500 text-slate-950 font-black text-xs shadow-lg shadow-teal-500/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
             >
               <span>Add Expense</span>
               <div className="p-1 rounded-full bg-slate-950/20">
@@ -788,11 +820,11 @@ export default function GroupDetails() {
                 setIsSettleDrawerOpen(true);
               }}
               disabled={members.length < 2}
-              className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white border border-amber-300 text-slate-900 font-bold text-xs shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white border border-teal-300 text-slate-900 font-bold text-xs shadow-lg shadow-teal-500/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
             >
               <span>Settle Up</span>
-              <div className="p-1 rounded-full bg-amber-100">
-                <HandCoins className="w-3.5 h-3.5 text-amber-700" />
+              <div className="p-1 rounded-full bg-teal-100">
+                <HandCoins className="w-3.5 h-3.5 text-teal-700" />
               </div>
             </button>
 
@@ -817,7 +849,7 @@ export default function GroupDetails() {
           className={`w-14 h-14 rounded-full flex items-center justify-center text-slate-950 font-black shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 ${
             isSpeedDialOpen
               ? 'bg-slate-900 text-white rotate-90 shadow-slate-900/40'
-              : 'bg-gradient-to-tr from-amber-400 via-yellow-400 to-amber-500 shadow-amber-400/40 hover:shadow-amber-400/60'
+              : 'bg-gradient-to-tr from-teal-500 via-teal-400 to-teal-600 shadow-teal-500/40 hover:shadow-teal-500/60'
           }`}
         >
           {isSpeedDialOpen ? <X className="w-6 h-6 text-white" /> : <Plus className="w-6 h-6 stroke-[3]" />}
